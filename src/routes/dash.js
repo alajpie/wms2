@@ -1,7 +1,6 @@
 const m = require("mithril");
 const css = require("aphrodite").css;
 const StyleSheet = require("aphrodite").StyleSheet;
-const moment = require("moment");
 const chunk = require("lodash.chunk");
 
 const session = require("../models/session");
@@ -103,24 +102,33 @@ function formatList(l) {
   const ll = chunk(l, 2)
     .map(x => {
       const z = x => x.toString().padStart(2, 0);
-      const f = x => moment(x.time).format("D.MM.YYYY HH:mm");
-      if (x[1]) {
-        // clocked out
-        const d = moment.duration(moment(x[1].time).diff(x[0].time));
-        return {
-          in: f(x[0]),
-          out: f(x[1]),
-          duration: Math.floor(d.asHours()) + "h " + z(d.minutes()) + "m"
-        };
-      } else {
-        // clocked in
-        const d = moment.duration(moment().diff(x[0].time));
-        return {
-          in: f(x[0]),
-          out: null,
-          duration: Math.floor(d.asHours()) + "h " + z(d.minutes()) + "m"
-        };
+      function f(x) {
+        const t = new Date(x);
+        return (
+          t.getDate() +
+          "." +
+          z(t.getMonth() + 1) +
+          "." +
+          t.getFullYear() +
+          " " +
+          z(t.getHours()) +
+          ":" +
+          z(t.getMinutes())
+        );
       }
+      function d(x, y) {
+        const diff = new Date(+x).valueOf() - new Date(+y).valueOf();
+        const hours = Math.floor(diff / (60 * 60 * 1000));
+        const minutes = z(Math.floor((diff / (60 * 1000)) % 60));
+        // const seconds = z(Math.floor((diff / 1000) % 60));
+        return `${hours}h ${minutes}m`;
+        // return `${hours}h ${minutes}m ${seconds}s`;
+      }
+      return {
+        in: f(x[0].time),
+        out: x[1] ? f(x[1].time) : null,
+        duration: x[1] ? d(x[1].time, x[0].time) : d(Date.now(), x[0].time)
+      };
     })
     .reverse();
   return ll;

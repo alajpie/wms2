@@ -2,8 +2,7 @@
   "dependencies": {
     "aphrodite": "^2.3.1",
     "lodash.chunk": "^4.2.0",
-    "mithril": "^1.1.6",
-    "moment": "^2.24.0"
+    "mithril": "^1.1.6"
   },
   "devDependencies": {
     "webpack": "^4.34.0",
