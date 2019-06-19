@@ -40,13 +40,17 @@ const style = StyleSheet.create({
     "@media (min-width:1000px)": {
       fontSize: "30px"
     },
-    fontSize: "3vw"
+    fontSize: "3vw",
+    borderRadius: "5px"
   },
-  gray: {
-    color: "#c1c1c1"
+  ghost: {
+    color: "#adadad"
   },
   invisible: {
     visibility: "hidden"
+  },
+  shaded: {
+    backgroundColor: "#dedede"
   }
 });
 
@@ -120,9 +124,9 @@ function formatList(l) {
         const diff = new Date(+x).valueOf() - new Date(+y).valueOf();
         const hours = Math.floor(diff / (60 * 60 * 1000));
         const minutes = z(Math.floor((diff / (60 * 1000)) % 60));
-        // const seconds = z(Math.floor((diff / 1000) % 60));
-        return `${hours}h ${minutes}m`;
-        // return `${hours}h ${minutes}m ${seconds}s`;
+        const seconds = z(Math.floor((diff / 1000) % 60));
+        // return `${hours}h ${minutes}m`;
+        return `${hours}h ${minutes}m ${seconds}s`;
       }
       return {
         in: f(x[0].time),
@@ -140,19 +144,23 @@ const listView = list =>
     {
       class: css(style.panel, style.textAlignCenter)
     },
-    formatList(list).map(x => {
+    formatList(list).map((x, i) => {
       if (x.out) {
         return m(
           "div",
-          { class: css(style.entry) },
+          { class: css(style.entry, i % 2 == 0 && style.shaded) },
           `${x.in}–${x.out} (${x.duration})`
         );
       } else {
-        return m("div", { class: css(style.entry) }, [
-          m("span", `${x.in}–`),
-          m("span", { class: css(style.invisible) }, "12.34.5678 90:12"),
-          m("span", { class: css(style.gray) }, ` (${x.duration})`)
-        ]);
+        return m(
+          "div",
+          { class: css(style.entry, i % 2 == 0 && style.shaded) },
+          [
+            m("span", `${x.in}–`),
+            m("span", { class: css(style.invisible) }, "12.34.5678 90:12"),
+            m("span", { class: css(style.ghost) }, ` (${x.duration})`)
+          ]
+        );
       }
     })
   );
