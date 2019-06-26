@@ -1,7 +1,7 @@
 const m = require("mithril");
 const css = require("aphrodite").css;
 const StyleSheet = require("aphrodite").StyleSheet;
-const chunk = require("lodash.chunk");
+const format = require("../utils/format");
 
 const session = require("../models/session");
 const entries = require("../models/entries");
@@ -102,61 +102,25 @@ const statusClock = () =>
     ])
   ]);
 
-function formatList(l) {
-  const ll = chunk(l, 2)
-    .map(x => {
-      const z = x => x.toString().padStart(2, 0);
-      function f(x) {
-        const t = new Date(x);
-        return (
-          t.getDate() +
-          "." +
-          z(t.getMonth() + 1) +
-          "." +
-          t.getFullYear() +
-          " " +
-          z(t.getHours()) +
-          ":" +
-          z(t.getMinutes())
-        );
-      }
-      function d(x, y) {
-        const diff = new Date(+x).valueOf() - new Date(+y).valueOf();
-        const hours = Math.floor(diff / (60 * 60 * 1000));
-        const minutes = z(Math.floor((diff / (60 * 1000)) % 60));
-        const seconds = z(Math.floor((diff / 1000) % 60));
-        // return `${hours}h ${minutes}m`;
-        return `${hours}h ${minutes}m ${seconds}s`;
-      }
-      return {
-        in: f(x[0].time),
-        out: x[1] ? f(x[1].time) : null,
-        duration: x[1] ? d(x[1].time, x[0].time) : d(Date.now(), x[0].time)
-      };
-    })
-    .reverse();
-  return ll;
-}
-
 const listView = list =>
   m(
     ".panel",
     {
       class: css(style.panel, style.textAlignCenter)
     },
-    formatList(list).map((x, i) => {
+    format.entryList(list).map((x, i) => {
       if (x.out) {
         return m(
           "div",
           { class: css(style.entry, i % 2 == 0 && style.shaded) },
-          `${x.in}–${x.out} (${x.duration})`
+          `${x.in} – ${x.out} (${x.duration})`
         );
       } else {
         return m(
           "div",
           { class: css(style.entry, i % 2 == 0 && style.shaded) },
           [
-            m("span", `${x.in}–`),
+            m("span", `${x.in} – `),
             m("span", { class: css(style.invisible) }, "12.34.5678 90:12"),
             m("span", { class: css(style.ghost) }, ` (${x.duration})`)
           ]
