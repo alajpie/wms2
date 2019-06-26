@@ -22,7 +22,7 @@ module.exports = function() {
                   if (e.message === "Unauthorized") {
                     error = "Invalid username and/or password.";
                   } else {
-                    error = "Connection error, please try again in a while.";
+                    error = "Connection error, check your network connection.";
                   }
                   m.redraw();
                 });
