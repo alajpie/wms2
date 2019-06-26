@@ -1,6 +1,19 @@
 const m = require("mithril");
+const css = require("aphrodite").css;
+const StyleSheet = require("aphrodite").StyleSheet;
 
 const session = require("../models/session");
+
+const style = StyleSheet.create({
+  wms: {
+    color: "#141b4d",
+    fontSize: "300%",
+    textAlign: "center"
+  },
+  separator: {
+    height: "20px"
+  }
+});
 
 module.exports = function() {
   let error;
@@ -11,8 +24,8 @@ module.exports = function() {
         m("a.signin-pb-logo", {
           href: "https://www.bluecrestinc.com"
         }),
-        m("div.signin-box", [
-          m("h1.text-center.signin-heading", [m("b", "WMS"), m("sup", "2")]),
+        m(".signin-box", [
+          m("div", { class: css(style.wms) }, [m("b", "WMS"), m("sup", "2")]),
           m(
             "form",
             {
@@ -29,7 +42,7 @@ module.exports = function() {
               }
             },
             [
-              m("div.formGroup", [
+              m(".formGroup", [
                 m("label", { for: "email" }, "Email"),
                 m("input.form-control", {
                   type: "email",
@@ -39,7 +52,8 @@ module.exports = function() {
                   value: session.email
                 })
               ]),
-              m("div.formGroup", [
+              m("div", { class: css(style.separator) }),
+              m(".formGroup", [
                 m("label", { for: "email" }, "Password"),
                 m("input.form-control", {
                   type: "password",
@@ -49,7 +63,9 @@ module.exports = function() {
                   value: session.password
                 })
               ]),
+              m("div", { class: css(style.separator) }),
               m("button.btn.btn-primary", "Submit"),
+              m("div", { class: css(error && style.separator) }),
               m("div", error)
             ]
           )
