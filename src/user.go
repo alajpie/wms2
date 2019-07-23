@@ -1,0 +1,103 @@
+package main
+
+import (
+	"crypto/rand"
+	"crypto/subtle"
+	"database/sql"
+	"encoding/base64"
+	"time"
+
+	"github.com/palantir/stacktrace"
+	"golang.org/x/crypto/argon2"
+)
+
+func createUser(db *sql.DB, email, password string, admin bool) (err error) {
+	// TODO: add email confirmation
+
+	tx, err := db.Begin()
+	defer tx.Rollback()
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to begin a transaction")
+	}
+
+	err = db.QueryRow("SELECT 1 FROM users WHERE email = ?", email).Scan()
+	if err != sql.ErrNoRows {
+		// user already exists
+		return stacktrace.NewError("user already exists")
+	}
+
+	salt := make([]byte, 8)
+	rand.Read(salt)
+	hash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 1, 16)
+
+	adminInt := 0
+	if admin {
+		adminInt = 1
+	}
+
+	_, err = db.Exec(
+		`INSERT INTO users (email, password_hash, password_salt, admin)
+		  VALUES (?1, ?2, ?3, ?4)`, email, hash, salt, adminInt)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to insert a row into the users table")
+	}
+
+	_, err = db.Exec(
+		`INSERT INTO user_states (user, state, since_unix_s)
+			VALUES (?1, ?2, ?3)`, email, "O", time.Now().Unix())
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to insert a row into the user_states table")
+	}
+
+	tx.Commit()
+	return
+}
+
+func checkPassword(db *sql.DB, email, password string) (ok bool) {
+	var savedHash, salt []byte
+	err := db.QueryRow("SELECT password_hash, password_salt FROM users WHERE email = ?", email).Scan(&savedHash, &salt)
+	if err != nil {
+		// user doesn't exist
+		ok = false
+		return
+	}
+
+	computedHash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 1, 16)
+	if subtle.ConstantTimeCompare(computedHash, savedHash) == 1 {
+		ok = true
+	} else {
+		ok = false
+	}
+
+	return
+}
+
+func checkSession(db *sql.DB, id string) (ok bool) {
+	err := db.QueryRow("SELECT 1 FROM sessions WHERE id = ?1 AND expires_unix_s >= ?2", id, time.Now().Unix()).Scan()
+	return err != sql.ErrNoRows
+}
+
+func getUserBySession(db *sql.DB, id string) (email string, err error) {
+	err = db.QueryRow("SELECT user FROM sessions WHERE id = ?1 AND expires_unix_s >= ?2", id, time.Now().Unix()).Scan(&email)
+	return
+}
+
+func createSession(db *sql.DB, email string, expireAfter time.Duration) (id string, err error) {
+	idRaw := make([]byte, 18)
+	rand.Read(idRaw)
+	id = base64.StdEncoding.EncodeToString(idRaw)
+	expires := time.Now().Add(expireAfter).Unix()
+	_, err = db.Exec(
+		`INSERT INTO sessions (id, user, expires_unix_s)
+			VALUES (?1, ?2, ?3)`, id, email, expires)
+	return
+}
+
+func cleanSessions(db *sql.DB) {
+	db.Exec("DELETE FROM sessions WHERE expires_unix_s < ?", time.Now().Unix())
+}
+
+func checkAdmin(db *sql.DB, email string) (admin bool, err error) {
+	err = db.QueryRow("SELECT admin FROM users WHERE email = ?", email).Scan(&admin)
+	return
+}
