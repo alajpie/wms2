@@ -71,6 +71,18 @@ func clockOut(db *sql.DB, email string) (err error) {
 	return
 }
 
+func editEntry(db *sql.DB, id, from, to int) (err error) {
+	_, err = db.Exec("UPDATE entries SET from_unix_s = ?1, to_unix_s = ?2 WHERE rowid = ?3", from, to, id)
+	err = stacktrace.Propagate(err, "failed to edit entry")
+	return
+}
+
+func deleteEntry(db *sql.DB, id int) (err error) {
+	_, err = db.Exec("DELETE FROM entries WHERE rowid = ?", id)
+	err = stacktrace.Propagate(err, "failed to delete entry")
+	return
+}
+
 func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 	entries = []entry{}
 	entry := entry{}
