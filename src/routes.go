@@ -23,10 +23,13 @@ func routes(mux *powermux.ServeMux, env env) {
 	mux.Route("/authorize").PostFunc(env.authorize)
 	mux.Route("/status").MiddlewareFunc(env.requireSession).GetFunc(env.status)
 	mux.Route("/entries").MiddlewareFunc(env.requireSession).GetFunc(env.entries)
-	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).PutFunc(env.entriesEdit)
-	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).DeleteFunc(env.entriesDelete)
 	mux.Route("/clock/in").MiddlewareFunc(env.requireSession).PutFunc(env.clockIn)
 	mux.Route("/clock/out").MiddlewareFunc(env.requireSession).PutFunc(env.clockOut)
+	mux.Route("/users/online/count").MiddlewareFunc(env.requireSession).GetFunc(env.usersOnlineCount)
+	// admin
+	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).PutFunc(env.entriesEdit)
+	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).DeleteFunc(env.entriesDelete)
+	mux.Route("/users/online/list").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).GetFunc(env.usersOnlineList)
 }
 
 func do400(w http.ResponseWriter) {
@@ -206,6 +209,30 @@ func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
 		do500(w)
 		return
 	}
+}
+
+func (env *env) usersOnlineCount(w http.ResponseWriter, r *http.Request) {
+	onlineUsers, err := countOnlineUsers(env.db)
+	if err != nil {
+		fmt.Print(stacktrace.Propagate(err, "failed to count online users"))
+		do500(w)
+		return
+	}
+	w.Write([]byte(strconv.Itoa(onlineUsers)))
+}
+
+func (env *env) usersOnlineList(w http.ResponseWriter, r *http.Request) {
+	onlineUsers, err := listOnlineUsers(env.db)
+	if err != nil {
+		fmt.Print(stacktrace.Propagate(err, "failed to list online users"))
+		do500(w)
+		return
+	}
+	if onlineUsers == nil { // empty list
+		onlineUsers = make([]onlineUser, 0) // doesn't marshal to null
+	}
+	js, _ := json.Marshal(onlineUsers)
+	w.Write([]byte(js))
 }
 
 func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
