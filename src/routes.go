@@ -169,7 +169,11 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 		do400(w)
 		return
 	}
-	r.ParseForm()
+	err = r.ParseForm()
+	if err != nil {
+		do400(w)
+		return
+	}
 	strFrom := r.Form.Get("from")
 	from, err := strconv.Atoi(strFrom)
 	if err != nil {
@@ -236,7 +240,11 @@ func (env *env) usersOnlineList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {
+		do400(w)
+		return
+	}
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 	ok := checkPassword(env.db, email, password)

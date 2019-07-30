@@ -5,6 +5,7 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/palantir/stacktrace"
@@ -20,14 +21,18 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 	// TODO: add email confirmation
 
 	tx, err := db.Begin()
-	defer tx.Rollback()
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
+		}
+	}()
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to begin a transaction")
 	}
 
 	err = db.QueryRow("SELECT 1 FROM users WHERE email = ?", email).Scan()
 	if err != sql.ErrNoRows {
-		// user already exists
 		return stacktrace.Propagate(err, "user already exists")
 	}
 
@@ -54,7 +59,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 		return stacktrace.Propagate(err, "failed to insert a row into the user_states table")
 	}
 
-	tx.Commit()
+	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 	return
 }
 
@@ -98,8 +103,9 @@ func createSession(db *sql.DB, email string, expireAfter time.Duration) (id stri
 	return
 }
 
-func cleanSessions(db *sql.DB) {
-	db.Exec("DELETE FROM sessions WHERE expires_unix_s < ?", time.Now().Unix())
+func cleanSessions(db *sql.DB) (err error) {
+	_, err = db.Exec("DELETE FROM sessions WHERE expires_unix_s < ?", time.Now().Unix())
+	return
 }
 
 func checkAdmin(db *sql.DB, email string) (admin bool, err error) {
