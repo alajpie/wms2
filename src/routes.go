@@ -163,7 +163,6 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 	strID := powermux.PathParam(r, "id")
 	id, err := strconv.Atoi(strID)
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "can't convert path parameter to int"))
 		do400(w)
 		return
 	}
@@ -171,14 +170,17 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 	strFrom := r.Form.Get("from")
 	from, err := strconv.Atoi(strFrom)
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "can't convert form parameter to int"))
 		do400(w)
 		return
 	}
 	strTo := r.Form.Get("to")
 	to, err := strconv.Atoi(strTo)
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "can't convert form parameter to int"))
+		do400(w)
+		return
+	}
+
+	if to < from {
 		do400(w)
 		return
 	}
@@ -195,7 +197,6 @@ func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
 	strID := powermux.PathParam(r, "id")
 	id, err := strconv.Atoi(strID)
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "can't convert path parameter to int"))
 		do400(w)
 		return
 	}
