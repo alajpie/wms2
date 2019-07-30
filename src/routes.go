@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,6 +21,7 @@ const (
 )
 
 func routes(mux *powermux.ServeMux, env env) {
+	mux.Route("/").MiddlewareFunc(env.corsMiddleware).OptionsFunc(env.cors)
 	mux.Route("/authorize").PostFunc(env.authorize)
 	mux.Route("/status").MiddlewareFunc(env.requireSession).GetFunc(env.status)
 	mux.Route("/entries").MiddlewareFunc(env.requireSession).GetFunc(env.entries)
@@ -45,6 +47,18 @@ func do401(w http.ResponseWriter) {
 func do500(w http.ResponseWriter) {
 	w.WriteHeader(500)
 	w.Write([]byte("500 Internal Server Error"))
+}
+
+// TODO: make this nicer
+func (env *env) cors(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+}
+
+func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	n(w, r)
 }
 
 func (env *env) requireAdmin(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
@@ -240,25 +254,32 @@ func (env *env) usersOnlineList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		do400(w)
+		do500(w)
 		return
 	}
-	email := r.Form.Get("email")
-	password := r.Form.Get("password")
-	ok := checkPassword(env.db, email, password)
+	type form struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	f := form{}
+	json.Unmarshal(body, &f)
+	ok := checkPassword(env.db, f.Email, f.Password)
 	if !ok {
 		do401(w)
 		return
 	}
 
-	id, err := createSession(env.db, email, time.Hour*24*31)
+	id, err := createSession(env.db, f.Email, time.Hour*24*31)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to create a session"))
 		do500(w)
 		return
 	}
 
-	w.Write([]byte(id))
+	js, _ := json.Marshal(struct {
+		Token string `json:"token"`
+	}{id})
+	w.Write([]byte(js))
 }
