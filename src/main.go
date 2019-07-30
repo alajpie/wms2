@@ -36,7 +36,8 @@ func main() {
 		user TEXT,
 		from_unix_s INTEGER, -- "_s" stands for seconds, unlike the JS millisecond unix time
 		to_unix_s INTEGER, -- see above, can be null, signifies disqulifed entry
-		FOREIGN KEY (user) REFERENCES users(email)
+		FOREIGN KEY (user) REFERENCES users(email),
+		CHECK(from_unix_s <= to_unix_s)
 	);
 
 	CREATE TABLE sessions (

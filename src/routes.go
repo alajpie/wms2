@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/AndrewBurian/powermux"
@@ -19,12 +20,18 @@ const (
 )
 
 func routes(mux *powermux.ServeMux, env env) {
-	mux.Route("/authorize").GetFunc(env.authorize)
+	mux.Route("/authorize").PostFunc(env.authorize)
 	mux.Route("/status").MiddlewareFunc(env.requireSession).GetFunc(env.status)
 	mux.Route("/entries").MiddlewareFunc(env.requireSession).GetFunc(env.entries)
+	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).PutFunc(env.entriesEdit)
+	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).DeleteFunc(env.entriesDelete)
 	mux.Route("/clock/in").MiddlewareFunc(env.requireSession).PutFunc(env.clockIn)
 	mux.Route("/clock/out").MiddlewareFunc(env.requireSession).PutFunc(env.clockOut)
-	mux.Route("/admin").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).GetFunc(env.admin)
+}
+
+func do400(w http.ResponseWriter) {
+	w.WriteHeader(400)
+	w.Write([]byte("400 Bad Request"))
 }
 
 func do401(w http.ResponseWriter) {
@@ -135,10 +142,6 @@ func (env *env) clockOut(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (env *env) admin(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("admin stuff"))
-}
-
 func (env *env) entries(w http.ResponseWriter, r *http.Request) {
 	user, ok := r.Context().Value(userKey).(string)
 	if !ok {
@@ -156,9 +159,58 @@ func (env *env) entries(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(js))
 }
 
+func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
+	strID := powermux.PathParam(r, "id")
+	id, err := strconv.Atoi(strID)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "can't convert path parameter to int"))
+		do400(w)
+		return
+	}
+	r.ParseForm()
+	strFrom := r.Form.Get("from")
+	from, err := strconv.Atoi(strFrom)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "can't convert form parameter to int"))
+		do400(w)
+		return
+	}
+	strTo := r.Form.Get("to")
+	to, err := strconv.Atoi(strTo)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "can't convert form parameter to int"))
+		do400(w)
+		return
+	}
+
+	err = editEntry(env.db, id, from, to)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, ""))
+		do500(w)
+		return
+	}
+}
+
+func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
+	strID := powermux.PathParam(r, "id")
+	id, err := strconv.Atoi(strID)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "can't convert path parameter to int"))
+		do400(w)
+		return
+	}
+	err = deleteEntry(env.db, id)
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, ""))
+		do500(w)
+		return
+	}
+}
+
 func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
-	email := r.URL.Query().Get("email")
-	password := r.URL.Query().Get("password")
+	r.ParseForm()
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
 	ok := checkPassword(env.db, email, password)
 	if !ok {
 		do401(w)
