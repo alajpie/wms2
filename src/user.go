@@ -11,6 +11,11 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+type onlineUser struct {
+	Email string `json:"email"`
+	Since int    `json:"since"`
+}
+
 func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 	// TODO: add email confirmation
 
@@ -99,5 +104,28 @@ func cleanSessions(db *sql.DB) {
 
 func checkAdmin(db *sql.DB, email string) (admin bool, err error) {
 	err = db.QueryRow("SELECT admin FROM users WHERE email = ?", email).Scan(&admin)
+	return
+}
+
+func countOnlineUsers(db *sql.DB) (onlineUsers int, err error) {
+	err = db.QueryRow("SELECT COUNT(user) FROM user_states WHERE state = 'I'").Scan(&onlineUsers)
+	return
+}
+
+func listOnlineUsers(db *sql.DB) (onlineUsers []onlineUser, err error) {
+	rows, err := db.Query("SELECT user, since_unix_s FROM user_states WHERE state = 'I'")
+	if err != nil {
+		err = stacktrace.Propagate(err, "failed to get online users")
+		return
+	}
+	for rows.Next() {
+		var ou onlineUser
+		err = rows.Scan(&ou.Email, &ou.Since)
+		if err != nil {
+			err = stacktrace.Propagate(err, "failed to scan row")
+			return
+		}
+		onlineUsers = append(onlineUsers, ou)
+	}
 	return
 }
