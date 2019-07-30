@@ -2,13 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 	"net/http"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/AndrewBurian/powermux"
+	"github.com/palantir/stacktrace"
 )
 
 type env struct {
@@ -55,17 +56,23 @@ func main() {
 		// so we create it...
 		db, err = sql.Open("sqlite3", "./wms2.db?mode=rwc")
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(stacktrace.Propagate(err, "can't open the database"))
+			return
 		}
 		defer db.Close()
 
 		// ...and execute the code
-		db.Exec(init)
+		_, err = db.Exec(init)
+		if err != nil {
+			fmt.Println(stacktrace.Propagate(err, "can't execute init SQL"))
+			return
+		}
 	} else {
 		// the database exists so we assume it's initialised
 		db, err = sql.Open("sqlite3", "./wms2.db?mode=rw")
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println(stacktrace.Propagate(err, "can't open the database"))
+			return
 		}
 		defer db.Close()
 	}
@@ -77,5 +84,6 @@ func main() {
 	mux := powermux.NewServeMux()
 	env := env{db}
 	routes(mux, env)
-	log.Fatal(http.ListenAndServe(":3000", mux))
+	err := http.ListenAndServe(":3000", mux)
+	fmt.Println(stacktrace.Propagate(err, ""))
 }
