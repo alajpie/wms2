@@ -23,7 +23,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 	err = db.QueryRow("SELECT 1 FROM users WHERE email = ?", email).Scan()
 	if err != sql.ErrNoRows {
 		// user already exists
-		return stacktrace.NewError("user already exists")
+		return stacktrace.Propagate(err, "user already exists")
 	}
 
 	salt := make([]byte, 8)
