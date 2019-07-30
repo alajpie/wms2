@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 
@@ -14,6 +15,15 @@ import (
 
 type env struct {
 	db *sql.DB
+}
+
+func disqualifier(db *sql.DB) {
+	for {
+		now := time.Now()
+		cutoff := time.Date(now.Year(), now.Month(), now.Day(), 20, 0, 0, 0, now.Location())
+		time.Sleep(time.Until(cutoff))
+		disqualify(db)
+	}
 }
 
 func main() {
@@ -37,6 +47,7 @@ func main() {
 		user TEXT,
 		from_unix_s INTEGER, -- "_s" stands for seconds, unlike the JS millisecond unix time
 		to_unix_s INTEGER, -- see above, can be null, signifies disqulifed entry
+		valid INTEGER CHECK(valid IN (0, 1)),
 		FOREIGN KEY (user) REFERENCES users(email),
 		CHECK(from_unix_s <= to_unix_s)
 	);
@@ -80,6 +91,8 @@ func main() {
 	cleanSessions(db)
 	createUser(db, "test@invalid", "hunter2", false)
 	createUser(db, "admin@invalid", "hunter2", true)
+
+	go disqualifier(db)
 
 	mux := powermux.NewServeMux()
 	env := env{db}
