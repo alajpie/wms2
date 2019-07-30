@@ -2,15 +2,45 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/palantir/stacktrace"
 )
 
 type entry struct {
-	ID   int `json:"id"`
-	From int `json:"from"`
-	To   int `json:"to"`
+	ID    int  `json:"id"`
+	From  int  `json:"from"`
+	To    int  `json:"to"`
+	Valid bool `json:"valid"`
+}
+
+func disqualify(db *sql.DB) {
+	rows, err := db.Query("SELECT user, since_unix_s FROM user_states WHERE state = 'I'")
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "couldn't select users to disqualify"))
+		return
+	}
+	type userSince struct {
+		user  string
+		since int
+	}
+	toDisq := []userSince{}
+	for rows.Next() {
+		var us userSince
+		rows.Scan(&us.user, &us.since)
+		toDisq = append(toDisq, us)
+	}
+	for _, x := range toDisq {
+		_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s, valid) VALUES (?1, ?2, ?3, 0)", x.user, x.since, time.Now().Unix())
+		if err != nil {
+			fmt.Println(stacktrace.Propagate(err, "failed to add disqualifying entry for "+x.user))
+		}
+	}
+	_, err = db.Exec("UPDATE user_states SET state = 'O', since_unix_s = ? WHERE state = 'I'", time.Now().Unix())
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "failed to clock out disqualified users"))
+	}
 }
 
 func clockIn(db *sql.DB, email string) (err error) {
@@ -58,7 +88,7 @@ func clockOut(db *sql.DB, email string) (err error) {
 	}
 
 	now := time.Now().Unix() // so that it doesn't change between the next two lines
-	_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s) VALUES (?1, ?2, ?3)", email, since, now)
+	_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s, valid) VALUES (?1, ?2, ?3, 1)", email, since, now)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to insert an entry")
 	}
@@ -86,13 +116,19 @@ func deleteEntry(db *sql.DB, id int) (err error) {
 func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 	entries = []entry{}
 	entry := entry{}
-	rows, err := db.Query("SELECT rowid, from_unix_s, to_unix_s FROM entries WHERE user = ?", email)
+	rows, err := db.Query("SELECT rowid, from_unix_s, to_unix_s, valid FROM entries WHERE user = ?", email)
 	if err != nil {
 		err = stacktrace.Propagate(err, "failed to list entries")
 		return
 	}
 	for rows.Next() {
-		rows.Scan(&entry.ID, &entry.From, &entry.To)
+		var valid int
+		rows.Scan(&entry.ID, &entry.From, &entry.To, &valid)
+		if valid == 1 {
+			entry.Valid = true
+		} else {
+			entry.Valid = false
+		}
 		entries = append(entries, entry)
 	}
 	return
