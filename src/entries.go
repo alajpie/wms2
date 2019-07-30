@@ -144,3 +144,30 @@ func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 	}
 	return
 }
+
+func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
+	// TODO: account for holidays
+	som := time.Date(date.Year(), date.Month(), 0, 0, 0, 0, 0, date.Location())
+	eom := time.Date(date.Year(), date.Month()+1, 0, 0, 0, 0, 0, date.Location())
+	rows, err := db.Query(
+		`SELECT from_unix_s, to_unix_s FROM entries
+			WHERE user = ?1 AND valid = 1
+			AND from_unix_s > ?2 AND to_unix_s < ?3`, email, som.Unix(), eom.Unix())
+	if err != nil {
+		err = stacktrace.Propagate(err, "failed to get entries in date range")
+		return
+	}
+	for rows.Next() {
+		var from, to int
+		rows.Scan(&from, &to)
+		delta += to - from
+	}
+	x := som
+	for x.Before(eom) {
+		if x.Weekday() != time.Saturday && x.Weekday() != time.Sunday {
+			delta -= 8 * 60 * 60
+		}
+		x = x.Add(time.Hour * 24)
+	}
+	return
+}
