@@ -28,7 +28,10 @@ func disqualify(db *sql.DB) {
 	toDisq := []userSince{}
 	for rows.Next() {
 		var us userSince
-		rows.Scan(&us.user, &us.since)
+		err = rows.Scan(&us.user, &us.since)
+		if err != nil {
+			fmt.Print(stacktrace.Propagate(err, "failed to scan row"))
+		}
 		toDisq = append(toDisq, us)
 	}
 	for _, x := range toDisq {
@@ -45,9 +48,14 @@ func disqualify(db *sql.DB) {
 
 func clockIn(db *sql.DB, email string) (err error) {
 	tx, err := db.Begin()
-	defer tx.Rollback()
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
+		}
+	}()
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to begin a transaction")
+		return stacktrace.Propagate(err, "failed to begin transaction")
 	}
 
 	var state string
@@ -65,15 +73,20 @@ func clockIn(db *sql.DB, email string) (err error) {
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
-	tx.Commit()
+	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 	return
 }
 
 func clockOut(db *sql.DB, email string) (err error) {
 	tx, err := db.Begin()
-	defer tx.Rollback()
+	defer func() {
+		err = tx.Rollback()
+		if err != nil {
+			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
+		}
+	}()
 	if err != nil {
-		return stacktrace.Propagate(err, "failed to begin a transaction")
+		return stacktrace.Propagate(err, "failed to begin transaction")
 	}
 
 	var state string
@@ -97,7 +110,7 @@ func clockOut(db *sql.DB, email string) (err error) {
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
-	tx.Commit()
+	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 	return
 }
 
@@ -122,7 +135,11 @@ func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 		return
 	}
 	for rows.Next() {
-		rows.Scan(&entry.ID, &entry.From, &entry.To, &entry.Valid)
+		err = rows.Scan(&entry.ID, &entry.From, &entry.To, &entry.Valid)
+		if err != nil {
+			err = stacktrace.Propagate(err, "failed to scan row")
+			return
+		}
 		entries = append(entries, entry)
 	}
 	return
