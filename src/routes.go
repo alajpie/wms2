@@ -247,7 +247,7 @@ func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
 
 	id, err := createSession(env.db, email, time.Hour*24*31)
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "createSession failed"))
+		fmt.Println(stacktrace.Propagate(err, "failed to create a session"))
 		do500(w)
 		return
 	}

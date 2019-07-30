@@ -67,7 +67,7 @@ func main() {
 		// so we create it...
 		db, err = sql.Open("sqlite3", "./wms2.db?mode=rwc")
 		if err != nil {
-			fmt.Println(stacktrace.Propagate(err, "can't open the database"))
+			fmt.Println(stacktrace.Propagate(err, "failed to open the database"))
 			return
 		}
 		defer db.Close()
@@ -75,14 +75,14 @@ func main() {
 		// ...and execute the code
 		_, err = db.Exec(init)
 		if err != nil {
-			fmt.Println(stacktrace.Propagate(err, "can't execute init SQL"))
+			fmt.Println(stacktrace.Propagate(err, "failed to execute init SQL"))
 			return
 		}
 	} else {
 		// the database exists so we assume it's initialised
 		db, err = sql.Open("sqlite3", "./wms2.db?mode=rw")
 		if err != nil {
-			fmt.Println(stacktrace.Propagate(err, "can't open the database"))
+			fmt.Println(stacktrace.Propagate(err, "failed to open the database"))
 			return
 		}
 		defer db.Close()

@@ -18,7 +18,7 @@ type entry struct {
 func disqualify(db *sql.DB) {
 	rows, err := db.Query("SELECT user, since_unix_s FROM user_states WHERE state = 'I'")
 	if err != nil {
-		fmt.Println(stacktrace.Propagate(err, "couldn't select users to disqualify"))
+		fmt.Println(stacktrace.Propagate(err, "failed to select users to disqualify"))
 		return
 	}
 	type userSince struct {
@@ -53,7 +53,7 @@ func clockIn(db *sql.DB, email string) (err error) {
 	var state string
 	err = db.QueryRow("SELECT state FROM user_states WHERE user = ?", email).Scan(&state)
 	if err != nil {
-		return stacktrace.Propagate(err, "couldn't find a row in user_states for specified user")
+		return stacktrace.Propagate(err, "ffailed to find a row in user_states for specified user")
 	}
 
 	if state == "I" {
@@ -80,7 +80,7 @@ func clockOut(db *sql.DB, email string) (err error) {
 	var since int
 	err = db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", email).Scan(&state, &since)
 	if err != nil {
-		return stacktrace.Propagate(err, "couldn't find a row in user_states for specified user")
+		return stacktrace.Propagate(err, "failed to find a row in user_states for specified user")
 	}
 
 	if state == "O" {
