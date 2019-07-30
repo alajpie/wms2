@@ -29,7 +29,7 @@ module.exports = {
     const x = await m.request({
       method: "POST",
       url: consts.API_BASE_URL + "/authorize",
-      data: { email: this.email, password: this.password }
+      body: { email: this.email, password: this.password }
     });
     this.token = x.token;
     this.password = null;
