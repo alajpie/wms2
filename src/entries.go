@@ -122,13 +122,7 @@ func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 		return
 	}
 	for rows.Next() {
-		var valid int
-		rows.Scan(&entry.ID, &entry.From, &entry.To, &valid)
-		if valid == 1 {
-			entry.Valid = true
-		} else {
-			entry.Valid = false
-		}
+		rows.Scan(&entry.ID, &entry.From, &entry.To, &entry.Valid)
 		entries = append(entries, entry)
 	}
 	return
