@@ -61,7 +61,7 @@ func clockIn(db *sql.DB, email string) (err error) {
 	var state string
 	err = db.QueryRow("SELECT state FROM user_states WHERE user = ?", email).Scan(&state)
 	if err != nil {
-		return stacktrace.Propagate(err, "ffailed to find a row in user_states for specified user")
+		return stacktrace.Propagate(err, "failed to find a row in user_states for specified user")
 	}
 
 	if state == "I" {
