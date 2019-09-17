@@ -46,7 +46,7 @@ func main() {
 		rowid INTEGER PRIMARY KEY AUTOINCREMENT, -- so that rowids don't repeat
 		user TEXT,
 		from_unix_s INTEGER, -- "_s" stands for seconds, unlike the JS millisecond unix time
-		to_unix_s INTEGER, -- see above, can be null, signifies disqulifed entry
+		to_unix_s INTEGER, -- see above, can be null, signifies disqualifed entry
 		valid INTEGER CHECK(valid IN (0, 1)),
 		FOREIGN KEY (user) REFERENCES users(email),
 		CHECK(from_unix_s <= to_unix_s)
