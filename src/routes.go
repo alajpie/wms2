@@ -21,7 +21,7 @@ const (
 )
 
 func routes(mux *powermux.ServeMux, env env) {
-	mux.Route("/").MiddlewareFunc(env.corsMiddleware).OptionsFunc(env.cors)
+	mux.Route("/").MiddlewareFunc(env.corsMiddleware)
 	mux.Route("/authorize").PostFunc(env.authorize)
 	mux.Route("/status").MiddlewareFunc(env.requireSession).GetFunc(env.status)
 	mux.Route("/entries").MiddlewareFunc(env.requireSession).GetFunc(env.entries)
@@ -49,16 +49,14 @@ func do500(w http.ResponseWriter) {
 	w.Write([]byte("500 Internal Server Error"))
 }
 
-// TODO: make this nicer
-func (env *env) cors(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-}
-
 func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
-	n(w, r)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(200)
+	} else {
+		n(w, r)
+	}
 }
 
 func (env *env) requireAdmin(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
