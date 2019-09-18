@@ -21,18 +21,19 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 	// TODO: add email confirmation
 
 	tx, err := db.Begin()
-	defer func() {
+	rollback := func() {
 		err = tx.Rollback()
 		if err != nil {
 			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
 		}
-	}()
+	}
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to begin a transaction")
 	}
 
 	err = db.QueryRow("SELECT 1 FROM users WHERE email = ?", email).Scan()
 	if err != sql.ErrNoRows {
+		rollback()
 		return stacktrace.Propagate(err, "user already exists")
 	}
 
@@ -49,6 +50,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 		`INSERT INTO users (email, password_hash, password_salt, admin)
 		  VALUES (?1, ?2, ?3, ?4)`, email, hash, salt, adminInt)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to insert a row into the users table")
 	}
 
@@ -56,6 +58,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 		`INSERT INTO user_states (user, state, since_unix_s)
 			VALUES (?1, ?2, ?3)`, email, "O", time.Now().Unix())
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to insert a row into the user_states table")
 	}
 

@@ -48,12 +48,12 @@ func disqualify(db *sql.DB) {
 
 func clockIn(db *sql.DB, email string) (err error) {
 	tx, err := db.Begin()
-	defer func() {
+	rollback := func() {
 		err = tx.Rollback()
 		if err != nil {
 			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
 		}
-	}()
+	}
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to begin transaction")
 	}
@@ -61,15 +61,18 @@ func clockIn(db *sql.DB, email string) (err error) {
 	var state string
 	err = db.QueryRow("SELECT state FROM user_states WHERE user = ?", email).Scan(&state)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to find a row in user_states for specified user")
 	}
 
 	if state == "I" {
+		rollback()
 		return // already clocked in
 	}
 
 	_, err = db.Exec("UPDATE user_states SET state = 'I', since_unix_s = ?1 WHERE user = ?2", time.Now().Unix(), email)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
@@ -79,12 +82,12 @@ func clockIn(db *sql.DB, email string) (err error) {
 
 func clockOut(db *sql.DB, email string) (err error) {
 	tx, err := db.Begin()
-	defer func() {
+	rollback := func() {
 		err = tx.Rollback()
 		if err != nil {
 			fmt.Println(stacktrace.Propagate(err, "failed to roll back transaction"))
 		}
-	}()
+	}
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to begin transaction")
 	}
@@ -93,20 +96,24 @@ func clockOut(db *sql.DB, email string) (err error) {
 	var since int
 	err = db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", email).Scan(&state, &since)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to find a row in user_states for specified user")
 	}
 
 	if state == "O" {
+		rollback()
 		return // already clocked out
 	}
 
 	now := time.Now().Unix() // so that it doesn't change between the next two lines
 	_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s, valid) VALUES (?1, ?2, ?3, 1)", email, since, now)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to insert an entry")
 	}
 	_, err = db.Exec("UPDATE user_states SET state = 'O', since_unix_s = ?1 WHERE user = ?2", now, email)
 	if err != nil {
+		rollback()
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
