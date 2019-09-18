@@ -51,6 +51,7 @@ func do500(w http.ResponseWriter) {
 
 func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(200)
