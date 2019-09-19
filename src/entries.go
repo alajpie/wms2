@@ -105,7 +105,7 @@ func clockOut(db *sql.DB, email string) (err error) {
 		return // already clocked out
 	}
 
-	now := time.Now().Unix() // so that it doesn't change between the next two lines
+	now := time.Now().Unix() // so that it doesn't change between the next two SQL statements
 	_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s, valid) VALUES (?1, ?2, ?3, 1)", email, since, now)
 	if err != nil {
 		rollback()
