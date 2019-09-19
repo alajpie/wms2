@@ -29,7 +29,7 @@ const style = StyleSheet.create({
   panel: {
     padding: "30px",
     width: "80%",
-    maxWidth: "800px",
+    maxWidth: "600px",
     margin: "0 auto"
   },
   separator: {
@@ -45,6 +45,9 @@ const style = StyleSheet.create({
   },
   ghost: {
     color: "#adadad"
+  },
+  red: {
+    color: "#ff0000"
   },
   invisible: {
     visibility: "hidden"
@@ -69,13 +72,10 @@ const statusClock = () =>
     m(
       "div",
       { class: css(style.status, style.textAlignCenter) },
-      entries.status
+      entries.status.state
         ? [
             m("span", "You're currently "),
-            m(
-              "b",
-              entries.status == "CLOCKED_IN" ? "clocked in" : "clocked out"
-            ),
+            m("b", entries.status.state == "I" ? "clocked in" : "clocked out"),
             m("span", ".")
           ]
         : "Loading..."
@@ -84,8 +84,8 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: entries.status != "CLOCKED_OUT",
-          class: entries.status == "CLOCKED_OUT" ? "btn-primary" : "",
+          disabled: entries.status.state != "O",
+          class: entries.status.state == "O" ? "btn-primary" : "",
           onclick: e => entries.clockIn().then(refresh)
         },
         "Clock in"
@@ -93,8 +93,8 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: entries.status != "CLOCKED_IN",
-          class: entries.status == "CLOCKED_IN" ? "btn-primary" : "",
+          disabled: entries.status.state != "I",
+          class: entries.status.state == "I" ? "btn-primary" : "",
           onclick: e => entries.clockOut().then(refresh)
         },
         "Clock out"
@@ -109,23 +109,18 @@ const listView = list =>
       class: css(style.panel, style.textAlignCenter)
     },
     format.entryList(list).map((x, i) => {
-      if (x.out) {
-        return m(
-          "div",
-          { class: css(style.entry, i % 2 == 0 && style.shaded) },
-          `${x.in} – ${x.out} (${x.duration})`
-        );
-      } else {
-        return m(
-          "div",
-          { class: css(style.entry, i % 2 == 0 && style.shaded) },
-          [
-            m("span", `${x.in} – `),
-            m("span", { class: css(style.invisible) }, "12.34.5678 90:12"),
-            m("span", { class: css(style.ghost) }, ` (${x.duration})`)
-          ]
-        );
-      }
+      return m(
+        "div",
+        {
+          class: css(
+            style.entry,
+            i % 2 == 0 && style.shaded,
+            !x.valid && style.red
+          )
+        },
+
+        `${x.date} ${x.duration} (${x.from} – ${x.to})`
+      );
     })
   );
 

@@ -5,43 +5,41 @@ const consts = require("../consts");
 
 const cache = Symbol("cache");
 
+function req(url, method) {
+  if (!method) {
+    method = "GET";
+  }
+  return m.request({
+    method,
+    url: consts.API_BASE_URL + url,
+    headers: { Authorization: "Bearer " + session.token }
+  });
+}
+
 module.exports = {
   async list() {
-    return m.request({
-      method: "GET",
-      url: consts.API_BASE_URL + "/entries",
-      headers: { Authorization: session.token }
-    });
+    return req("/entries");
   },
-  [cache]: {},
+  [cache]: { status: {} },
   get status() {
+    if (!this[cache].status.state) {
+      this.refreshStatus();
+    }
     return this[cache].status;
   },
   async refreshStatus() {
-    const x = await m.request({
-      method: "GET",
-      url: consts.API_BASE_URL + "/status",
-      headers: { Authorization: session.token }
-    });
-    this[cache].status = x.status;
-    return x.status;
+    const x = await req("/status");
+    this[cache].status = x;
+    return x;
   },
   async clockIn() {
-    await m.request({
-      method: "PUT",
-      url: consts.API_BASE_URL + "/clockin",
-      headers: { Authorization: session.token }
-    });
+    await req("/clock/in", "PUT");
     this[cache].status = "CLOCKED_IN";
     m.redraw();
     return;
   },
   async clockOut() {
-    await m.request({
-      method: "PUT",
-      url: consts.API_BASE_URL + "/clockout",
-      headers: { Authorization: session.token }
-    });
+    await req("/clock/out", "PUT");
     this[cache].status = "CLOCKED_OUT";
     m.redraw();
     return;
