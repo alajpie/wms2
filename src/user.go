@@ -62,8 +62,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (err error) {
 		return stacktrace.Propagate(err, "failed to insert a row into the user_states table")
 	}
 
-	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
-	return
+	return stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
 func checkPassword(db *sql.DB, email, password string) (ok bool) {
@@ -71,18 +70,15 @@ func checkPassword(db *sql.DB, email, password string) (ok bool) {
 	err := db.QueryRow("SELECT password_hash, password_salt FROM users WHERE email = ?", email).Scan(&savedHash, &salt)
 	if err != nil {
 		// user doesn't exist
-		ok = false
-		return
+		return false
 	}
 
 	computedHash := argon2.IDKey([]byte(password), salt, 1, 64*1024, 1, 16)
 	if subtle.ConstantTimeCompare(computedHash, savedHash) == 1 {
-		ok = true
+		return true
 	} else {
-		ok = false
+		return false
 	}
-
-	return
 }
 
 func checkSession(db *sql.DB, id string) (ok bool) {
@@ -91,8 +87,8 @@ func checkSession(db *sql.DB, id string) (ok bool) {
 }
 
 func getUserBySession(db *sql.DB, id string) (email string, err error) {
-	err = db.QueryRow("SELECT user FROM sessions WHERE id = ?1 AND expires_unix_s >= ?2", id, time.Now().Unix()).Scan(&email)
-	return
+	db.QueryRow("SELECT user FROM sessions WHERE id = ?1 AND expires_unix_s >= ?2", id, time.Now().Unix()).Scan(&email)
+	return email, err
 }
 
 func createSession(db *sql.DB, email string, expireAfter time.Duration) (id string, err error) {
@@ -103,38 +99,36 @@ func createSession(db *sql.DB, email string, expireAfter time.Duration) (id stri
 	_, err = db.Exec(
 		`INSERT INTO sessions (id, user, expires_unix_s)
 			VALUES (?1, ?2, ?3)`, id, email, expires)
-	return
+	return id, err
 }
 
 func cleanSessions(db *sql.DB) (err error) {
 	_, err = db.Exec("DELETE FROM sessions WHERE expires_unix_s < ?", time.Now().Unix())
-	return
+	return err
 }
 
 func checkAdmin(db *sql.DB, email string) (admin bool, err error) {
 	err = db.QueryRow("SELECT admin FROM users WHERE email = ?", email).Scan(&admin)
-	return
+	return admin, err
 }
 
 func countOnlineUsers(db *sql.DB) (onlineUsers int, err error) {
 	err = db.QueryRow("SELECT COUNT(user) FROM user_states WHERE state = 'I'").Scan(&onlineUsers)
-	return
+	return onlineUsers, err
 }
 
 func listOnlineUsers(db *sql.DB) (onlineUsers []onlineUser, err error) {
 	rows, err := db.Query("SELECT user, since_unix_s FROM user_states WHERE state = 'I'")
 	if err != nil {
-		err = stacktrace.Propagate(err, "failed to get online users")
-		return
+		return onlineUsers, stacktrace.Propagate(err, "failed to get online users")
 	}
 	for rows.Next() {
 		var ou onlineUser
 		err = rows.Scan(&ou.Email, &ou.Since)
 		if err != nil {
-			err = stacktrace.Propagate(err, "failed to scan row")
-			return
+			return onlineUsers, stacktrace.Propagate(err, "failed to scan row")
 		}
 		onlineUsers = append(onlineUsers, ou)
 	}
-	return
+	return onlineUsers, nil
 }

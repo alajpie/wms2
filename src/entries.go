@@ -67,7 +67,7 @@ func clockIn(db *sql.DB, email string) (err error) {
 
 	if state == "I" {
 		rollback()
-		return // already clocked in
+		return nil // already clocked in
 	}
 
 	_, err = db.Exec("UPDATE user_states SET state = 'I', since_unix_s = ?1 WHERE user = ?2", time.Now().Unix(), email)
@@ -76,8 +76,7 @@ func clockIn(db *sql.DB, email string) (err error) {
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
-	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
-	return
+	return stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
 func clockOut(db *sql.DB, email string) (err error) {
@@ -102,7 +101,7 @@ func clockOut(db *sql.DB, email string) (err error) {
 
 	if state == "O" {
 		rollback()
-		return // already clocked out
+		return nil // already clocked out
 	}
 
 	now := time.Now().Unix() // so that it doesn't change between the next two SQL statements
@@ -117,20 +116,17 @@ func clockOut(db *sql.DB, email string) (err error) {
 		return stacktrace.Propagate(err, "failed to update user state")
 	}
 
-	err = stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
-	return
+	return stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
 func editEntry(db *sql.DB, id, from, to int) (err error) {
 	_, err = db.Exec("UPDATE entries SET from_unix_s = ?1, to_unix_s = ?2 WHERE rowid = ?3", from, to, id)
-	err = stacktrace.Propagate(err, "failed to edit entry")
-	return
+	return stacktrace.Propagate(err, "failed to edit entry")
 }
 
 func deleteEntry(db *sql.DB, id int) (err error) {
 	_, err = db.Exec("DELETE FROM entries WHERE rowid = ?", id)
-	err = stacktrace.Propagate(err, "failed to delete entry")
-	return
+	return stacktrace.Propagate(err, "failed to delete entry")
 }
 
 func listEntries(db *sql.DB, email string) (entries []entry, err error) {
@@ -138,18 +134,16 @@ func listEntries(db *sql.DB, email string) (entries []entry, err error) {
 	entry := entry{}
 	rows, err := db.Query("SELECT rowid, from_unix_s, to_unix_s, valid FROM entries WHERE user = ?", email)
 	if err != nil {
-		err = stacktrace.Propagate(err, "failed to list entries")
-		return
+		return entries, stacktrace.Propagate(err, "failed to list entries")
 	}
 	for rows.Next() {
 		err = rows.Scan(&entry.ID, &entry.From, &entry.To, &entry.Valid)
 		if err != nil {
-			err = stacktrace.Propagate(err, "failed to scan row")
-			return
+			return entries, stacktrace.Propagate(err, "failed to scan row")
 		}
 		entries = append(entries, entry)
 	}
-	return
+	return entries, nil
 }
 
 func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
@@ -161,8 +155,7 @@ func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err 
 			WHERE user = ?1 AND valid = 1
 			AND from_unix_s > ?2 AND to_unix_s < ?3`, email, som.Unix(), eom.Unix())
 	if err != nil {
-		err = stacktrace.Propagate(err, "failed to get entries in date range")
-		return
+		return delta, stacktrace.Propagate(err, "failed to get entries in date range")
 	}
 	for rows.Next() {
 		var from, to int
@@ -176,5 +169,5 @@ func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err 
 		}
 		x = x.Add(time.Hour * 24)
 	}
-	return
+	return delta, nil
 }
