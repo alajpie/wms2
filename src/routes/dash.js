@@ -108,20 +108,21 @@ const listView = list =>
     {
       class: css(style.panel, style.textAlignCenter)
     },
-    format.entryList(list).map((x, i) => {
-      return m(
-        "div",
-        {
-          class: css(
-            style.entry,
-            i % 2 == 0 && style.shaded,
-            !x.valid && style.red
-          )
-        },
-
-        `${x.date} ${x.duration} (${x.from} – ${x.to})`
-      );
-    })
+    format.entryList(list).map((x, i) =>
+      x.entries.map((y, j) =>
+        m(
+          "div",
+          {
+            class: css(
+              style.entry,
+              j % 2 == 0 && style.shaded,
+              !y.valid && style.red
+            )
+          },
+          `${y.date} ${y.duration} (${y.from} – ${y.to})`
+        )
+      )
+    )
   );
 
 module.exports = {
