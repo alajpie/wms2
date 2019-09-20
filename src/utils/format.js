@@ -20,18 +20,22 @@ function time(x) {
 }
 
 function entryList(l) {
-  const ll = l
-    .map(x => {
-      return {
-        date: date(x.from * 1000),
-        from: time(x.from * 1000),
-        to: x.valid ? time(x.to * 1000) : "XXXX",
-        duration: x.valid ? diff(x.to * 1000, x.from * 1000) : "Xh XXm",
-        valid: x.valid
-      };
-    })
-    .reverse();
-  return ll;
+  const ll = [];
+  for (const [day, ens] of Object.entries(l)) {
+    ll.push({
+      day,
+      entries: ens
+        .map(x => ({
+          date: date(x.from * 1000),
+          from: time(x.from * 1000),
+          to: x.valid ? time(x.to * 1000) : "XXXX",
+          duration: x.valid ? diff(x.to * 1000, x.from * 1000) : "Xh XXm",
+          valid: x.valid
+        }))
+        .reverse()
+    });
+  }
+  return ll.reverse();
 }
 
 module.exports = { entryList, testables: { diff, date } };
