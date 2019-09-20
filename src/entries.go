@@ -129,21 +129,28 @@ func deleteEntry(db *sql.DB, id int) (err error) {
 	return stacktrace.Propagate(err, "failed to delete entry")
 }
 
-func listEntries(db *sql.DB, email string) (entries []entry, err error) {
-	entries = []entry{}
-	entry := entry{}
+func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
+	ens := []entry{}
+	en := entry{}
 	rows, err := db.Query("SELECT rowid, from_unix_s, to_unix_s, valid FROM entries WHERE user = ?", email)
 	if err != nil {
-		return entries, stacktrace.Propagate(err, "failed to list entries")
+		return nil, stacktrace.Propagate(err, "failed to list entries")
 	}
 	for rows.Next() {
-		err = rows.Scan(&entry.ID, &entry.From, &entry.To, &entry.Valid)
+		err = rows.Scan(&en.ID, &en.From, &en.To, &en.Valid)
 		if err != nil {
-			return entries, stacktrace.Propagate(err, "failed to scan row")
+			return nil, stacktrace.Propagate(err, "failed to scan row")
 		}
-		entries = append(entries, entry)
+		ens = append(ens, en)
 	}
-	return entries, nil
+	days = make(map[int64][]entry)
+	for _, x := range ens {
+		date := time.Unix(int64(x.From), 0)
+		key := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location()).Unix()
+		days[key] = append(days[key], x)
+	}
+
+	return days, nil
 }
 
 func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
