@@ -3,8 +3,8 @@ const css = require("aphrodite").css;
 const StyleSheet = require("aphrodite").StyleSheet;
 const format = require("../utils/format");
 
-const session = require("../models/session");
-const entries = require("../models/entries");
+const session = require("../binders/session");
+const entries = require("../binders/entries");
 
 const style = StyleSheet.create({
   flexRight: {
@@ -60,11 +60,14 @@ const style = StyleSheet.create({
 let list = [];
 
 const refresh = async () => {
-  const x = entries.refreshStatus();
-  const y = entries.list();
-  await x;
-  list = await y;
+  entries.refreshStatus();
+  list = await entries.list();
   m.redraw();
+};
+
+const getStatusState = () => {
+  const status = entries.getStatus();
+  return status ? status.state : null;
 };
 
 const statusClock = () =>
@@ -72,10 +75,10 @@ const statusClock = () =>
     m(
       "div",
       { class: css(style.status, style.textAlignCenter) },
-      entries.status.state
+      entries.getStatus()
         ? [
             m("span", "You're currently "),
-            m("b", entries.status.state == "I" ? "clocked in" : "clocked out"),
+            m("b", getStatusState() == "I" ? "clocked in" : "clocked out"),
             m("span", ".")
           ]
         : "Loading..."
@@ -84,8 +87,8 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: entries.status.state != "O",
-          class: entries.status.state == "O" ? "btn-primary" : "",
+          disabled: getStatusState() != "O",
+          class: getStatusState() == "O" ? "btn-primary" : "",
           onclick: e => entries.clockIn().then(refresh)
         },
         "Clock in"
@@ -93,8 +96,8 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: entries.status.state != "I",
-          class: entries.status.state == "I" ? "btn-primary" : "",
+          disabled: getStatusState() != "I",
+          class: getStatusState() == "I" ? "btn-primary" : "",
           onclick: e => entries.clockOut().then(refresh)
         },
         "Clock out"
@@ -146,7 +149,7 @@ module.exports = {
   async oninit() {
     refresh();
     setInterval(() => {
-      entries.status === "CLOCKED_IN" && m.redraw();
-    }, 1000);
+      refresh();
+    }, 55 * 1000);
   }
 };

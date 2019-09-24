@@ -3,8 +3,6 @@ const m = require("mithril");
 const session = require("./session");
 const consts = require("../consts");
 
-const cache = Symbol("cache");
-
 function req(url, method) {
   if (!method) {
     method = "GET";
@@ -12,35 +10,40 @@ function req(url, method) {
   return m.request({
     method,
     url: consts.API_BASE_URL + url,
-    headers: { Authorization: "Bearer " + session.token }
+    headers: { Authorization: "Bearer " + session.getToken() }
   });
 }
+
+let cachedStatus = null;
+let cachedExpiry = 0;
 
 module.exports = {
   async list() {
     return req("/entries");
   },
-  [cache]: { status: {} },
-  get status() {
-    if (!this[cache].status.state) {
-      this.refreshStatus();
+  getStatus() {
+    if (cachedExpiry < Date.now()) {
+      return null;
+    } else {
+      return cachedStatus;
     }
-    return this[cache].status;
   },
   async refreshStatus() {
-    const x = await req("/status");
-    this[cache].status = x;
-    return x;
+    cachedExpiry = Date.now() + 60 * 1000;
+    cachedStatus = await req("/status");
+    return cachedStatus;
   },
   async clockIn() {
     await req("/clock/in", "PUT");
-    this[cache].status = "CLOCKED_IN";
+    cachedExpiry = 0;
+    this.refreshStatus();
     m.redraw();
     return;
   },
   async clockOut() {
     await req("/clock/out", "PUT");
-    this[cache].status = "CLOCKED_OUT";
+    cachedExpiry = 0;
+    this.refreshStatus();
     m.redraw();
     return;
   }
