@@ -111,11 +111,20 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 	}
 
 	info := struct {
-		State string `json:"state"`
-		Since int    `json:"since"`
+		State  string `json:"state"`
+		Since  int    `json:"since"`
+		Online int    `json:"online"`
 	}{}
 
-	err := env.db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", user).Scan(&info.State, &info.Since)
+	online, err := countOnlineUsers(env.db)
+	info.Online = online
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "failed to count online users"))
+		do500(w)
+		return
+	}
+
+	err = env.db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", user).Scan(&info.State, &info.Since)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to get user info"))
 		do500(w)
