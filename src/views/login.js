@@ -2,7 +2,7 @@ const m = require("mithril");
 const css = require("aphrodite").css;
 const StyleSheet = require("aphrodite").StyleSheet;
 
-const session = require("../models/session");
+const session = require("../binders/session");
 
 const style = StyleSheet.create({
   wms: {
@@ -47,9 +47,9 @@ module.exports = function() {
                 m("input.form-control", {
                   type: "email",
                   oninput(e) {
-                    session.email = e.target.value;
+                    session.setEmail(e.target.value);
                   },
-                  value: session.email
+                  value: session.getEmail()
                 })
               ]),
               m("div", { class: css(style.separator) }),
