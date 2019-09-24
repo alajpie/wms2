@@ -20,7 +20,7 @@ const style = StyleSheet.create({
     textAlign: "center"
   },
   status: {
-    color: "black",
+    color: "#000000",
     fontSize: "200%"
   },
   clock: {
@@ -69,17 +69,28 @@ const statusClock = () => {
   const status = entries.getStatus();
   const statusState = status ? status.state : null;
   return m(".panel", { class: css(style.panel) }, [
-    m(
-      "div",
-      { class: css(style.status, style.textAlignCenter) },
-      status
-        ? [
+    status
+      ? m("div", [
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
             m("span", "You're currently "),
             m("b", statusState == "I" ? "clocked in" : "clocked out"),
             m("span", ".")
-          ]
-        : "Loading..."
-    ),
+          ]),
+          m("div", { class: css(style.textAlignCenter) }, [
+            m("b", status.online),
+            status.online === 1
+              ? m("span", " person is clocked in right now.")
+              : m("span", " people are clocked in right now.")
+          ])
+        ])
+      : m("div", [
+          m(
+            "div",
+            { class: css(style.status, style.textAlignCenter) },
+            "Loading..."
+          ),
+          m("div", { class: css(style.textAlignCenter) }, "Loading...")
+        ]),
     m("div", { class: css(style.flexCenter, style.clock) }, [
       m(
         "button.btn",
