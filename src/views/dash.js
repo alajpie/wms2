@@ -37,10 +37,10 @@ const style = StyleSheet.create({
   },
   entry: {
     color: "black",
-    "@media (min-width:1000px)": {
-      fontSize: "30px"
+    "@media (min-width:800px)": {
+      fontSize: "29px"
     },
-    fontSize: "3vw",
+    fontSize: "3.7vw",
     borderRadius: "5px"
   },
   ghost: {
