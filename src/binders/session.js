@@ -39,7 +39,7 @@ module.exports = {
     return await m.request({
       method: "GET",
       url: consts.API_BASE_URL + "/users/online/count",
-      headers: { Authorization: "Bearer " + this.token }
+      headers: { Authorization: "Bearer " + this.getToken() }
     });
   }
 };
