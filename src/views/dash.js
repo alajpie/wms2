@@ -65,20 +65,17 @@ const refresh = async () => {
   m.redraw();
 };
 
-const getStatusState = () => {
+const statusClock = () => {
   const status = entries.getStatus();
-  return status ? status.state : null;
-};
-
-const statusClock = () =>
-  m(".panel", { class: css(style.panel) }, [
+  const statusState = status ? status.state : null;
+  return m(".panel", { class: css(style.panel) }, [
     m(
       "div",
       { class: css(style.status, style.textAlignCenter) },
-      entries.getStatus()
+      status
         ? [
             m("span", "You're currently "),
-            m("b", getStatusState() == "I" ? "clocked in" : "clocked out"),
+            m("b", statusState == "I" ? "clocked in" : "clocked out"),
             m("span", ".")
           ]
         : "Loading..."
@@ -87,8 +84,8 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: getStatusState() != "O",
-          class: getStatusState() == "O" ? "btn-primary" : "",
+          disabled: statusState != "O",
+          class: statusState == "O" ? "btn-primary" : "",
           onclick: e => entries.clockIn().then(refresh)
         },
         "Clock in"
@@ -96,14 +93,15 @@ const statusClock = () =>
       m(
         "button.btn",
         {
-          disabled: getStatusState() != "I",
-          class: getStatusState() == "I" ? "btn-primary" : "",
+          disabled: statusState != "I",
+          class: statusState == "I" ? "btn-primary" : "",
           onclick: e => entries.clockOut().then(refresh)
         },
         "Clock out"
       )
     ])
   ]);
+};
 
 const listView = list =>
   m(

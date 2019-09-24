@@ -36,16 +36,10 @@ module.exports = {
   async clockIn() {
     await req("/clock/in", "PUT");
     cachedExpiry = 0;
-    this.refreshStatus();
-    m.redraw();
-    return;
   },
   async clockOut() {
     await req("/clock/out", "PUT");
     cachedExpiry = 0;
-    this.refreshStatus();
-    m.redraw();
-    return;
   }
 };
 
