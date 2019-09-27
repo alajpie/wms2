@@ -35,13 +35,27 @@ const style = StyleSheet.create({
   separator: {
     height: "20px"
   },
-  entry: {
+  day: {
     color: "black",
     "@media (min-width:800px)": {
       fontSize: "29px"
     },
     fontSize: "3.7vw",
-    borderRadius: "5px"
+    borderRadius: "5px",
+    display: "flex",
+    justifyContent: "space-evenly"
+  },
+  entry: {
+    width: "70%",
+    marginLeft: "15%",
+    color: "black",
+    "@media (min-width:800px)": {
+      fontSize: "29px"
+    },
+    fontSize: "3.7vw",
+    borderRadius: "5px",
+    display: "flex",
+    justifyContent: "space-evenly"
   },
   ghost: {
     color: "#adadad"
@@ -114,27 +128,43 @@ const statusClock = () => {
   ]);
 };
 
+const lp = x => {
+  console.log(x);
+  return x;
+};
+
+const day = (day, even) =>
+  m("div", [
+    m(
+      "div",
+      {
+        class: css(style.day, even && style.shaded, !day.valid && style.red)
+      },
+      [
+        m("span", day.date),
+        m("span", day.duration),
+        m("span", `(${day.from} - ${day.to})`)
+      ]
+    ),
+    day.entries.map((x, i) => entry(x, i % 2 == 0))
+  ]);
+
+const entry = (entry, even) =>
+  m(
+    "div",
+    {
+      class: css(style.entry, even && style.shaded, !entry.valid && style.red)
+    },
+    [m("span", `${entry.from} - ${entry.to}`), m("span", `(${entry.duration})`)]
+  );
+
 const listView = list =>
   m(
     ".panel",
     {
       class: css(style.panel, style.textAlignCenter)
     },
-    format.entryList(list).map((x, i) =>
-      x.entries.map((y, j) =>
-        m(
-          "div",
-          {
-            class: css(
-              style.entry,
-              j % 2 == 0 && style.shaded,
-              !y.valid && style.red
-            )
-          },
-          `${y.date} ${y.duration} (${y.from} – ${y.to})`
-        )
-      )
-    )
+    format.entryList(list).map((x, i) => day(x, i % 2 == 0))
   );
 
 module.exports = {
