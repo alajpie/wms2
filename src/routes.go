@@ -111,15 +111,24 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 	}
 
 	info := struct {
-		State  string `json:"state"`
-		Since  int    `json:"since"`
-		Online int    `json:"online"`
+		State         string `json:"state"`
+		Since         int    `json:"since"`
+		Online        int    `json:"online"`
+		DeltaForMonth int    `json:"deltaForMonth"`
 	}{}
 
 	online, err := countOnlineUsers(env.db)
 	info.Online = online
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to count online users"))
+		do500(w)
+		return
+	}
+
+	delta, err := getDeltaForMonth(env.db, user, time.Now())
+	info.DeltaForMonth = delta
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "failed to get monthly delta"))
 		do500(w)
 		return
 	}

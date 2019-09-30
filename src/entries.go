@@ -155,8 +155,8 @@ func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
 
 func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
-	som := time.Date(date.Year(), date.Month(), 0, 0, 0, 0, 0, date.Location())
-	eom := time.Date(date.Year(), date.Month()+1, 0, 0, 0, 0, 0, date.Location())
+	som := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+	eom := time.Date(date.Year(), date.Month()+1, 1, 0, 0, 0, 0, date.Location())
 	rows, err := db.Query(
 		`SELECT from_unix_s, to_unix_s FROM entries
 			WHERE user = ?1 AND valid = 1
