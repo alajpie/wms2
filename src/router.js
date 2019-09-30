@@ -5,7 +5,7 @@ const Login = require("./views/login");
 const Dash = require("./views/dash");
 
 module.exports.route = function route() {
-  const loggedIn = !!session.getToken();
+  const loggedIn = session.getToken() !== "null";
   if (loggedIn) {
     m.route(document.body, "/dash", {
       "/dash": Dash
