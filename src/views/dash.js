@@ -97,8 +97,8 @@ const statusClock = () => {
             statusState == "I"
               ? [
                   m("span", "You've been "),
-                  m("b", "clocked in "),
-                  m("span", "for "),
+                  m("b", "clocked in"),
+                  m("span", " for "),
                   m("b", format.duration(Date.now() - status.since * 1000)),
                   m("span", ".")
                 ]
