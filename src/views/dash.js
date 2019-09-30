@@ -7,6 +7,12 @@ const session = require("../binders/session");
 const entries = require("../binders/entries");
 
 const style = StyleSheet.create({
+  font: {
+    "@media (min-width:600px)": {
+      fontSize: "15px"
+    },
+    fontSize: "2.5vw"
+  },
   flexRight: {
     width: "100%",
     display: "flex",
@@ -27,8 +33,10 @@ const style = StyleSheet.create({
     marginTop: "15px"
   },
   panel: {
-    padding: "30px",
-    width: "80%",
+    "@media (min-width:600px)": {
+      padding: "30px"
+    },
+    padding: "15px",
     maxWidth: "600px",
     margin: "0 auto"
   },
@@ -37,10 +45,7 @@ const style = StyleSheet.create({
   },
   day: {
     color: "black",
-    "@media (min-width:800px)": {
-      fontSize: "29px"
-    },
-    fontSize: "3.7vw",
+    fontSize: "180%",
     borderRadius: "5px",
     display: "flex",
     justifyContent: "space-evenly"
@@ -49,10 +54,7 @@ const style = StyleSheet.create({
     width: "70%",
     marginLeft: "15%",
     color: "black",
-    "@media (min-width:800px)": {
-      fontSize: "29px"
-    },
-    fontSize: "3.7vw",
+    fontSize: "180%",
     borderRadius: "5px",
     display: "flex",
     justifyContent: "space-evenly"
@@ -188,7 +190,7 @@ const listView = list =>
 
 module.exports = {
   view(vnode) {
-    return m("div", [
+    return m("div", { class: css(style.font) }, [
       m(
         "#header",
         m(".navbar", [
