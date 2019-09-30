@@ -32,7 +32,7 @@ module.exports = function() {
               onsubmit(e) {
                 e.preventDefault();
                 session.logIn().catch(e => {
-                  if (e.message === "Unauthorized") {
+                  if (e.code === 401) {
                     error = "Invalid username and/or password.";
                   } else {
                     error = "Connection error, check your network connection.";
