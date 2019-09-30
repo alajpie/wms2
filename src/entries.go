@@ -153,14 +153,47 @@ func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
 	return days, nil
 }
 
-func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
+func getDeltaForDay(db *sql.DB, email string, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
-	som := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
-	eom := time.Date(date.Year(), date.Month()+1, 1, 0, 0, 0, 0, date.Location())
+	sod := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	eod := time.Date(date.Year(), date.Month(), date.Day()+1, 0, 0, 0, 0, date.Location())
 	rows, err := db.Query(
 		`SELECT from_unix_s, to_unix_s FROM entries
 			WHERE user = ?1 AND valid = 1
-			AND from_unix_s > ?2 AND to_unix_s < ?3`, email, som.Unix(), eom.Unix())
+			AND from_unix_s > ?2 AND to_unix_s < ?3`, email, sod.Unix(), eod.Unix())
+	if err != nil {
+		return delta, stacktrace.Propagate(err, "failed to get entries in date range")
+	}
+	for rows.Next() {
+		var from, to int
+		rows.Scan(&from, &to)
+		delta += to - from
+	}
+	if date.Weekday() != time.Saturday && date.Weekday() != time.Sunday {
+		delta -= 8 * 60 * 60
+	}
+
+	var state string
+	var since int
+	err = db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", email).Scan(&state, &since)
+	if err != nil {
+		return delta, stacktrace.Propagate(err, "failed to get user info")
+	}
+	if state == "I" {
+		delta += int(time.Now().Unix()) - since
+	}
+
+	return delta, nil
+}
+
+func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
+	// TODO: account for holidays
+	som := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+	eod := time.Date(date.Year(), date.Month(), date.Day()+1, 0, 0, 0, 0, date.Location())
+	rows, err := db.Query(
+		`SELECT from_unix_s, to_unix_s FROM entries
+			WHERE user = ?1 AND valid = 1
+			AND from_unix_s > ?2 AND to_unix_s < ?3`, email, som.Unix(), eod.Unix())
 	if err != nil {
 		return delta, stacktrace.Propagate(err, "failed to get entries in date range")
 	}
@@ -170,11 +203,22 @@ func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err 
 		delta += to - from
 	}
 	x := som
-	for x.Before(eom) {
+	for x.Before(eod) {
 		if x.Weekday() != time.Saturday && x.Weekday() != time.Sunday {
 			delta -= 8 * 60 * 60
 		}
 		x = x.Add(time.Hour * 24)
 	}
+
+	var state string
+	var since int
+	err = db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", email).Scan(&state, &since)
+	if err != nil {
+		return delta, stacktrace.Propagate(err, "failed to get user info")
+	}
+	if state == "I" {
+		delta += int(time.Now().Unix()) - since
+	}
+
 	return delta, nil
 }

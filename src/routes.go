@@ -115,6 +115,7 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 		Since         int    `json:"since"`
 		Online        int    `json:"online"`
 		DeltaForMonth int    `json:"deltaForMonth"`
+		DeltaForDay   int    `json:"deltaForDay"`
 	}{}
 
 	online, err := countOnlineUsers(env.db)
@@ -125,10 +126,18 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delta, err := getDeltaForMonth(env.db, user, time.Now())
-	info.DeltaForMonth = delta
+	deltaForMonth, err := getDeltaForMonth(env.db, user, time.Now())
+	info.DeltaForMonth = deltaForMonth
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to get monthly delta"))
+		do500(w)
+		return
+	}
+
+	deltaForDay, err := getDeltaForDay(env.db, user, time.Now())
+	info.DeltaForDay = deltaForDay
+	if err != nil {
+		fmt.Println(stacktrace.Propagate(err, "failed to get daily delta"))
 		do500(w)
 		return
 	}
