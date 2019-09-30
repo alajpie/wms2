@@ -1,8 +1,9 @@
-const chunk = require("lodash.chunk");
-
 const z = x => x.toString().padStart(2, 0);
 
 function duration(x) {
+  if (x < 0) {
+    x = -x + 59999;
+  }
   const hours = Math.floor(x / (60 * 60 * 1000));
   const minutes = z(Math.floor((x / (60 * 1000)) % 60));
   return `${hours}h ${minutes}m`;
@@ -74,4 +75,4 @@ function entryList(l) {
   return ll;
 }
 
-module.exports = { entryList, testables: { duration, date, time } };
+module.exports = { entryList, duration, testables: { date, time } };
