@@ -85,6 +85,12 @@ const statusClock = () => {
   return m(".panel", { class: css(style.panel) }, [
     status
       ? m("div", [
+          m("div", { class: css(style.textAlignCenter) }, [
+            m("b", status.online),
+            status.online === 1
+              ? m("span", " person is clocked in right now.")
+              : m("span", " people are clocked in right now.")
+          ]),
           m(
             "div",
             { class: css(style.status, style.textAlignCenter) },
@@ -102,12 +108,6 @@ const statusClock = () => {
                   m("span", ".")
                 ]
           ),
-          m("div", { class: css(style.textAlignCenter) }, [
-            m("b", status.online),
-            status.online === 1
-              ? m("span", " person is clocked in right now.")
-              : m("span", " people are clocked in right now.")
-          ]),
           m("div", { class: css(style.status, style.textAlignCenter) }, [
             m("span", "You're "),
             m("b", format.duration(status.deltaForDay * 1000)),
