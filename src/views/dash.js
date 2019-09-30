@@ -96,7 +96,7 @@ const statusClock = () => {
           m(
             "div",
             { class: css(style.status, style.textAlignCenter) },
-            statusState == "I"
+            statusState === "I"
               ? [
                   m("span", "You've been "),
                   m("b", "clocked in"),
@@ -135,8 +135,8 @@ const statusClock = () => {
       m(
         "button.btn",
         {
-          disabled: statusState != "O",
-          class: statusState == "O" ? "btn-primary" : "",
+          disabled: statusState !== "O",
+          class: statusState === "O" ? "btn-primary" : "",
           onclick: e => entries.clockIn().then(refresh)
         },
         "Clock in"
@@ -144,8 +144,8 @@ const statusClock = () => {
       m(
         "button.btn",
         {
-          disabled: statusState != "I",
-          class: statusState == "I" ? "btn-primary" : "",
+          disabled: statusState !== "I",
+          class: statusState === "I" ? "btn-primary" : "",
           onclick: e => entries.clockOut().then(refresh)
         },
         "Clock out"
@@ -167,7 +167,7 @@ const day = day =>
         m("span", `(${day.from} - ${day.to})`)
       ]
     ),
-    day.entries.map((x, i) => entry(x, i % 2 == 0))
+    day.entries.map(x => entry(x))
   ]);
 
 const entry = entry =>
@@ -185,7 +185,7 @@ const listView = list =>
     {
       class: css(style.panel, style.textAlignCenter)
     },
-    format.entryList(list).map((x, i) => day(x, i % 2 == 0))
+    format.entryList(list).map(x => day(x))
   );
 
 module.exports = {
