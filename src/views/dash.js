@@ -85,16 +85,40 @@ const statusClock = () => {
   return m(".panel", { class: css(style.panel) }, [
     status
       ? m("div", [
-          m("div", { class: css(style.status, style.textAlignCenter) }, [
-            m("span", "You're currently "),
-            m("b", statusState == "I" ? "clocked in" : "clocked out"),
-            m("span", ".")
-          ]),
+          m(
+            "div",
+            { class: css(style.status, style.textAlignCenter) },
+            statusState == "I"
+              ? [
+                  m("span", "You've been "),
+                  m("b", "clocked in "),
+                  m("span", "for "),
+                  m("b", format.duration(Date.now() - status.since * 1000)),
+                  m("span", ".")
+                ]
+              : [
+                  m("span", "You're currently "),
+                  m("b", "clocked out"),
+                  m("span", ".")
+                ]
+          ),
           m("div", { class: css(style.textAlignCenter) }, [
             m("b", status.online),
             status.online === 1
               ? m("span", " person is clocked in right now.")
               : m("span", " people are clocked in right now.")
+          ]),
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
+            m("span", "You're "),
+            m("b", format.duration(status.deltaForDay * 1000)),
+            m("b", status.deltaForDay < 0 ? " behind" : " ahead"),
+            m("span", " for the day.")
+          ]),
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
+            m("span", "You're "),
+            m("b", format.duration(status.deltaForMonth * 1000)),
+            m("b", status.deltaForMonth < 0 ? " behind" : " ahead"),
+            m("span", " for the month.")
           ])
         ])
       : m("div", [
@@ -128,17 +152,12 @@ const statusClock = () => {
   ]);
 };
 
-const lp = x => {
-  console.log(x);
-  return x;
-};
-
-const day = (day, even) =>
+const day = day =>
   m("div", [
     m(
       "div",
       {
-        class: css(style.day, even && style.shaded, !day.valid && style.red)
+        class: css(style.day, style.shaded, !day.valid && style.red)
       },
       [
         m("span", day.date),
@@ -149,11 +168,11 @@ const day = (day, even) =>
     day.entries.map((x, i) => entry(x, i % 2 == 0))
   ]);
 
-const entry = (entry, even) =>
+const entry = entry =>
   m(
     "div",
     {
-      class: css(style.entry, even && style.shaded, !entry.valid && style.red)
+      class: css(style.entry, !entry.valid && style.red)
     },
     [m("span", `${entry.from} - ${entry.to}`), m("span", `(${entry.duration})`)]
   );
