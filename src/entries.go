@@ -21,11 +21,13 @@ func disqualify(db *sql.DB) {
 		fmt.Println(stacktrace.Propagate(err, "failed to select users to disqualify"))
 		return
 	}
+
 	type userSince struct {
 		user  string
 		since int
 	}
 	toDisq := []userSince{}
+
 	for rows.Next() {
 		var us userSince
 		err = rows.Scan(&us.user, &us.since)
@@ -34,12 +36,14 @@ func disqualify(db *sql.DB) {
 		}
 		toDisq = append(toDisq, us)
 	}
+
 	for _, x := range toDisq {
 		_, err = db.Exec("INSERT INTO entries (user, from_unix_s, to_unix_s, valid) VALUES (?1, ?2, ?3, 0)", x.user, x.since, time.Now().Unix())
 		if err != nil {
 			fmt.Println(stacktrace.Propagate(err, "failed to add disqualifying entry for "+x.user))
 		}
 	}
+
 	_, err = db.Exec("UPDATE user_states SET state = 'O', since_unix_s = ? WHERE state = 'I'", time.Now().Unix())
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to clock out disqualified users"))
@@ -130,12 +134,13 @@ func deleteEntry(db *sql.DB, id int) (err error) {
 }
 
 func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
-	ens := []entry{}
-	en := entry{}
 	rows, err := db.Query("SELECT rowid, from_unix_s, to_unix_s, valid FROM entries WHERE user = ?", email)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list entries")
 	}
+
+	ens := []entry{}
+	en := entry{}
 	for rows.Next() {
 		err = rows.Scan(&en.ID, &en.From, &en.To, &en.Valid)
 		if err != nil {
@@ -143,6 +148,7 @@ func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
 		}
 		ens = append(ens, en)
 	}
+
 	days = make(map[int64][]entry)
 	for _, x := range ens {
 		date := time.Unix(int64(x.From), 0)
@@ -155,6 +161,7 @@ func listEntries(db *sql.DB, email string) (days map[int64][]entry, err error) {
 
 func getDeltaForDay(db *sql.DB, email string, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
+
 	sod := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	eod := time.Date(date.Year(), date.Month(), date.Day()+1, 0, 0, 0, 0, date.Location())
 	rows, err := db.Query(
@@ -164,11 +171,13 @@ func getDeltaForDay(db *sql.DB, email string, date time.Time) (delta int, err er
 	if err != nil {
 		return delta, stacktrace.Propagate(err, "failed to get entries in date range")
 	}
+
 	for rows.Next() {
 		var from, to int
 		rows.Scan(&from, &to)
 		delta += to - from
 	}
+
 	if date.Weekday() != time.Saturday && date.Weekday() != time.Sunday {
 		delta -= 8 * 60 * 60
 	}
@@ -179,6 +188,7 @@ func getDeltaForDay(db *sql.DB, email string, date time.Time) (delta int, err er
 	if err != nil {
 		return delta, stacktrace.Propagate(err, "failed to get user info")
 	}
+
 	if state == "I" {
 		delta += int(time.Now().Unix()) - since
 	}
@@ -188,6 +198,7 @@ func getDeltaForDay(db *sql.DB, email string, date time.Time) (delta int, err er
 
 func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
+
 	som := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
 	eod := time.Date(date.Year(), date.Month(), date.Day()+1, 0, 0, 0, 0, date.Location())
 	rows, err := db.Query(
@@ -197,11 +208,13 @@ func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err 
 	if err != nil {
 		return delta, stacktrace.Propagate(err, "failed to get entries in date range")
 	}
+
 	for rows.Next() {
 		var from, to int
 		rows.Scan(&from, &to)
 		delta += to - from
 	}
+
 	x := som
 	for x.Before(eod) {
 		if x.Weekday() != time.Saturday && x.Weekday() != time.Sunday {
@@ -216,6 +229,7 @@ func getDeltaForMonth(db *sql.DB, email string, date time.Time) (delta int, err 
 	if err != nil {
 		return delta, stacktrace.Propagate(err, "failed to get user info")
 	}
+
 	if state == "I" {
 		delta += int(time.Now().Unix()) - since
 	}
