@@ -13,6 +13,8 @@ import (
 	"github.com/palantir/stacktrace"
 )
 
+const apiVersion = -1
+
 type key int
 
 const (
@@ -22,6 +24,7 @@ const (
 
 func routes(mux *powermux.ServeMux, env env) {
 	mux.Route("/").MiddlewareFunc(env.corsMiddleware)
+	mux.Route("/version").GetFunc(env.version)
 	mux.Route("/authorize").PostFunc(env.authorize)
 	u := mux.Route("/u").MiddlewareFunc(env.requireSession)
 	u.Route("/status").GetFunc(env.status)
@@ -49,6 +52,10 @@ func do401(w http.ResponseWriter) {
 func do500(w http.ResponseWriter) {
 	w.WriteHeader(500)
 	w.Write([]byte("500 Internal Server Error"))
+}
+
+func (env *env) version(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(strconv.Itoa(apiVersion)))
 }
 
 func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
