@@ -38,7 +38,7 @@ module.exports = {
   async onlineUsers() {
     return await m.request({
       method: "GET",
-      url: consts.API_BASE_URL + "/users/online/count",
+      url: consts.API_BASE_URL + "/u/users/online/count",
       headers: { Authorization: "Bearer " + this.getToken() }
     });
   }
