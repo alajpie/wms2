@@ -192,12 +192,14 @@ func (env *env) entries(w http.ResponseWriter, r *http.Request) {
 		do500(w)
 		return
 	}
+
 	entries, err := listEntries(env.db, user)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, ""))
 		do500(w)
 		return
 	}
+
 	js, _ := json.Marshal(entries)
 	w.Write([]byte(js))
 }
@@ -209,6 +211,7 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 		do400(w)
 		return
 	}
+
 	err = r.ParseForm()
 	if err != nil {
 		do400(w)
@@ -247,6 +250,7 @@ func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
 		do400(w)
 		return
 	}
+
 	err = deleteEntry(env.db, id)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, ""))
@@ -262,6 +266,7 @@ func (env *env) usersOnlineCount(w http.ResponseWriter, r *http.Request) {
 		do500(w)
 		return
 	}
+
 	w.Write([]byte(strconv.Itoa(onlineUsers)))
 }
 
@@ -272,9 +277,11 @@ func (env *env) usersOnlineList(w http.ResponseWriter, r *http.Request) {
 		do500(w)
 		return
 	}
+
 	if onlineUsers == nil { // empty list
 		onlineUsers = make([]onlineUser, 0) // doesn't marshal to null
 	}
+
 	js, _ := json.Marshal(onlineUsers)
 	w.Write([]byte(js))
 }
@@ -285,12 +292,14 @@ func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
 		do500(w)
 		return
 	}
+
 	type form struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	f := form{}
 	json.Unmarshal(body, &f)
+
 	ok := checkPassword(env.db, f.Email, f.Password)
 	if !ok {
 		do401(w)

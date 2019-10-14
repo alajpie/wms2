@@ -122,6 +122,7 @@ func listOnlineUsers(db *sql.DB) (onlineUsers []onlineUser, err error) {
 	if err != nil {
 		return onlineUsers, stacktrace.Propagate(err, "failed to get online users")
 	}
+
 	for rows.Next() {
 		var ou onlineUser
 		err = rows.Scan(&ou.Email, &ou.Since)
@@ -130,5 +131,6 @@ func listOnlineUsers(db *sql.DB) (onlineUsers []onlineUser, err error) {
 		}
 		onlineUsers = append(onlineUsers, ou)
 	}
+
 	return onlineUsers, nil
 }
