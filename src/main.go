@@ -29,37 +29,40 @@ func disqualifier(db *sql.DB) {
 func main() {
 	const init = `
 	CREATE TABLE users (
-		email TEXT PRIMARY KEY,
+		uid INTEGER PRIMARY KEY AUTOINCREMENT, -- so that they don't repeat
+		email TEXT,
 		password_hash BLOB,
 		password_salt BLOB,
-		admin INTEGER CHECK(admin IN (0, 1))
+		admin INTEGER CHECK(admin IN (0, 1)),
+		UNIQUE(email)
 	);
 
 	CREATE TABLE user_states (
-		user TEXT,
+		uid INTEGER,
 		state TEXT CHECK(state IN ('I', 'O')),
 		since_unix_s, -- see entries.from_unix_s
-		FOREIGN KEY (user) REFERENCES users(email)
+		FOREIGN KEY (uid) REFERENCES users(uid),
+		UNIQUE(uid)
 	);
 
 	CREATE TABLE entries (
-		rowid INTEGER PRIMARY KEY AUTOINCREMENT, -- so that rowids don't repeat
-		user TEXT,
+		eid INTEGER PRIMARY KEY AUTOINCREMENT, -- so that they don't repeat
+		uid INTEGER,
 		from_unix_s INTEGER, -- "_s" stands for seconds, unlike the JS millisecond unix time
 		to_unix_s INTEGER, -- see above, can be null, signifies disqualifed entry
 		valid INTEGER CHECK(valid IN (0, 1)),
-		FOREIGN KEY (user) REFERENCES users(email),
+		FOREIGN KEY (uid) REFERENCES users(uid),
 		CHECK(from_unix_s <= to_unix_s)
 	);
 
 	CREATE TABLE sessions (
-		id TEXT,
-		user TEXT,
+		sid TEXT,
+		uid INTEGER,
 		expires_unix_s INTEGER, -- see entries.from_unix_s
-		FOREIGN KEY (user) REFERENCES users(email)
+		FOREIGN KEY (uid) REFERENCES users(uid)
 	);
 
-	CREATE INDEX sessions_id ON sessions (id);
+	CREATE INDEX sessions_id ON sessions (sid);
 	`
 	var db *sql.DB
 	if _, err := os.Stat("./wms2.db"); os.IsNotExist(err) {
