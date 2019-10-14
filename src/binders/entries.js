@@ -19,7 +19,7 @@ let cachedExpiry = 0;
 
 module.exports = {
   async list() {
-    return req("/entries");
+    return req("/u/entries");
   },
   getStatus() {
     if (cachedExpiry < Date.now()) {
@@ -30,15 +30,15 @@ module.exports = {
   },
   async refreshStatus() {
     cachedExpiry = Date.now() + 60 * 1000;
-    cachedStatus = await req("/status");
+    cachedStatus = await req("/u/status");
     return cachedStatus;
   },
   async clockIn() {
-    await req("/clock/in", "PUT");
+    await req("/u/clock/in", "PUT");
     cachedExpiry = 0;
   },
   async clockOut() {
-    await req("/clock/out", "PUT");
+    await req("/u/clock/out", "PUT");
     cachedExpiry = 0;
   }
 };
