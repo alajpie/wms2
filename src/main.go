@@ -91,6 +91,8 @@ func main() {
 		defer db.Close()
 	}
 
+	db.Exec(`PRAGMA foreign_keys = on;`)
+
 	cleanSessions(db)
 	createUser(db, "test@invalid", "hunter2", false)
 	createUser(db, "admin@invalid", "hunter2", true)
