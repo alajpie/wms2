@@ -41,6 +41,14 @@ module.exports = {
       url: consts.API_BASE_URL + "/u/users/online/count",
       headers: { Authorization: "Bearer " + this.getToken() }
     });
+  },
+
+  async versionMatches() {
+    const v = await m.request({
+      method: "GET",
+      url: consts.API_BASE_URL + "/version"
+    });
+    return v === consts.API_VERSION;
   }
 };
 
