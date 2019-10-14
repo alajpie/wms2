@@ -124,12 +124,25 @@ const statusClock = () => {
           ])
         ])
       : m("div", [
-          m(
-            "div",
-            { class: css(style.status, style.textAlignCenter) },
-            "Loading..."
-          ),
-          m("div", { class: css(style.textAlignCenter) }, "Loading...")
+          m("div", { class: css(style.textAlignCenter) }, [
+            m("b", "[...]"),
+            m("span", " people are clocked in right now")
+          ]),
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
+            m("span", "The page is "),
+            m("b", "loading"),
+            m("span", ".")
+          ]),
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
+            m("span", "You're "),
+            m("b", "[...]"),
+            m("span", " for the day.")
+          ]),
+          m("div", { class: css(style.status, style.textAlignCenter) }, [
+            m("span", "You're "),
+            m("b", "[...]"),
+            m("span", " for the month.")
+          ])
         ]),
     m("div", { class: css(style.flexCenter, style.clock) }, [
       m(
