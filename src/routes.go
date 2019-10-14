@@ -16,8 +16,8 @@ import (
 type key int
 
 const (
-	sessionKey key = iota
-	userKey
+	sidKey key = iota
+	uidKey
 )
 
 func routes(mux *powermux.ServeMux, env env) {
@@ -61,14 +61,14 @@ func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(ht
 }
 
 func (env *env) requireAdmin(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
-	user, ok := r.Context().Value(userKey).(string)
+	uid, ok := r.Context().Value(uidKey).(Uid)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context, use requireSession first"))
 		do500(w)
 		return
 	}
 
-	admin, err := checkAdmin(env.db, user)
+	admin, err := checkAdmin(env.db, uid)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "checkAdmin failed"))
 		do500(w)
@@ -90,20 +90,20 @@ func (env *env) requireSession(w http.ResponseWriter, r *http.Request, n func(ht
 		return
 	}
 
-	id := h[7:]
-	user, err := getUserBySession(env.db, id)
+	sid := Sid(h[7:])
+	uid, err := getUserBySession(env.db, sid)
 	if err != nil {
 		do401(w)
 		return
 	}
 
-	ctx := context.WithValue(r.Context(), sessionKey, id)
-	ctx = context.WithValue(ctx, userKey, user)
+	ctx := context.WithValue(r.Context(), sidKey, sid)
+	ctx = context.WithValue(ctx, uidKey, uid)
 	n(w, r.WithContext(ctx))
 }
 
 func (env *env) status(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(userKey).(string)
+	uid, ok := r.Context().Value(uidKey).(Uid)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
@@ -126,7 +126,7 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaForMonth, err := getDeltaForMonth(env.db, user, time.Now())
+	deltaForMonth, err := getDeltaForMonth(env.db, uid, time.Now())
 	info.DeltaForMonth = deltaForMonth
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to get monthly delta"))
@@ -134,7 +134,7 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deltaForDay, err := getDeltaForDay(env.db, user, time.Now())
+	deltaForDay, err := getDeltaForDay(env.db, uid, time.Now())
 	info.DeltaForDay = deltaForDay
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to get daily delta"))
@@ -142,7 +142,7 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = env.db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE user = ?", user).Scan(&info.State, &info.Since)
+	err = env.db.QueryRow("SELECT state, since_unix_s FROM user_states WHERE uid = ?", uid).Scan(&info.State, &info.Since)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to get user info"))
 		do500(w)
@@ -154,14 +154,14 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) clockIn(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(userKey).(string)
+	uid, ok := r.Context().Value(uidKey).(Uid)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
 		return
 	}
 
-	err := clockIn(env.db, user)
+	err := clockIn(env.db, uid)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to clock in"))
 		do500(w)
@@ -170,14 +170,14 @@ func (env *env) clockIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) clockOut(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(userKey).(string)
+	uid, ok := r.Context().Value(uidKey).(Uid)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
 		return
 	}
 
-	err := clockOut(env.db, user)
+	err := clockOut(env.db, uid)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to clock out"))
 		do500(w)
@@ -186,14 +186,14 @@ func (env *env) clockOut(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) entries(w http.ResponseWriter, r *http.Request) {
-	user, ok := r.Context().Value(userKey).(string)
+	uid, ok := r.Context().Value(uidKey).(Uid)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
 		return
 	}
 
-	entries, err := listEntries(env.db, user)
+	entries, err := listEntries(env.db, uid)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, ""))
 		do500(w)
@@ -205,8 +205,9 @@ func (env *env) entries(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
-	strID := powermux.PathParam(r, "id")
-	id, err := strconv.Atoi(strID)
+	strEID := powermux.PathParam(r, "eid")
+	intEID, err := strconv.Atoi(strEID)
+	eid := Eid(intEID)
 	if err != nil {
 		do400(w)
 		return
@@ -235,7 +236,7 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = editEntry(env.db, id, from, to)
+	err = editEntry(env.db, eid, from, to)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, ""))
 		do500(w)
@@ -244,14 +245,15 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
-	strID := powermux.PathParam(r, "id")
-	id, err := strconv.Atoi(strID)
+	strEID := powermux.PathParam(r, "eid")
+	intEID, err := strconv.Atoi(strEID)
+	eid := Eid(intEID)
 	if err != nil {
 		do400(w)
 		return
 	}
 
-	err = deleteEntry(env.db, id)
+	err = deleteEntry(env.db, eid)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, ""))
 		do500(w)
@@ -300,13 +302,19 @@ func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
 	f := form{}
 	json.Unmarshal(body, &f)
 
-	ok := checkPassword(env.db, f.Email, f.Password)
+	uid, err := emailToUID(env.db, f.Email)
+	if err != nil {
+		do401(w)
+		return
+	}
+
+	ok := checkPassword(env.db, uid, f.Password)
 	if !ok {
 		do401(w)
 		return
 	}
 
-	id, err := createSession(env.db, f.Email, time.Hour*24*31)
+	sid, err := createSession(env.db, uid, time.Hour*24*31)
 	if err != nil {
 		fmt.Println(stacktrace.Propagate(err, "failed to create a session"))
 		do500(w)
@@ -314,7 +322,7 @@ func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	js, _ := json.Marshal(struct {
-		Token string `json:"token"`
-	}{id})
+		Token Sid `json:"token"`
+	}{sid})
 	w.Write([]byte(js))
 }
