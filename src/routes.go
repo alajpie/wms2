@@ -23,15 +23,17 @@ const (
 func routes(mux *powermux.ServeMux, env env) {
 	mux.Route("/").MiddlewareFunc(env.corsMiddleware)
 	mux.Route("/authorize").PostFunc(env.authorize)
-	mux.Route("/status").MiddlewareFunc(env.requireSession).GetFunc(env.status)
-	mux.Route("/entries").MiddlewareFunc(env.requireSession).GetFunc(env.entries)
-	mux.Route("/clock/in").MiddlewareFunc(env.requireSession).PutFunc(env.clockIn)
-	mux.Route("/clock/out").MiddlewareFunc(env.requireSession).PutFunc(env.clockOut)
-	mux.Route("/users/online/count").MiddlewareFunc(env.requireSession).GetFunc(env.usersOnlineCount)
-	// admin
-	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).PutFunc(env.entriesEdit)
-	mux.Route("/entries/:id").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).DeleteFunc(env.entriesDelete)
-	mux.Route("/users/online/list").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin).GetFunc(env.usersOnlineList)
+	u := mux.Route("/u").MiddlewareFunc(env.requireSession)
+	u.Route("/status").GetFunc(env.status)
+	u.Route("/entries").GetFunc(env.entries)
+	u.Route("/clock/in").PutFunc(env.clockIn)
+	u.Route("/clock/out").PutFunc(env.clockOut)
+	u.Route("/users/online/count").GetFunc(env.usersOnlineCount)
+	a := mux.Route("/a").MiddlewareFunc(env.requireSession).MiddlewareFunc(env.requireAdmin)
+	a.Route("/entries/:id").PutFunc(env.entriesEdit)
+	a.Route("/entries/:id").DeleteFunc(env.entriesDelete)
+	a.Route("/users/:id")
+	a.Route("/users/online/list").GetFunc(env.usersOnlineList)
 }
 
 func do400(w http.ResponseWriter) {
