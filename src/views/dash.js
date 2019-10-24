@@ -112,14 +112,27 @@ const statusClock = () => {
           ),
           m("div", { class: css(style.status, style.textAlignCenter) }, [
             m("span", "You're "),
-            m("b", format.duration(status.deltaForDay * 1000)),
-            m("b", status.deltaForDay < 0 ? " behind" : " ahead"),
+            m("b", format.duration((status.deltaForDay - status.since) * 1000)),
+            m(
+              "b",
+              status.deltaForDay - (Date.now() / 1000 - status.since) < 0
+                ? " behind"
+                : " ahead"
+            ),
             m("span", " for the day.")
           ]),
           m("div", { class: css(style.status, style.textAlignCenter) }, [
             m("span", "You're "),
-            m("b", format.duration(status.deltaForMonth * 1000)),
-            m("b", status.deltaForMonth < 0 ? " behind" : " ahead"),
+            m(
+              "b",
+              format.duration((status.deltaForMonth - status.since) * 1000)
+            ),
+            m(
+              "b",
+              status.deltaForMonth - (Date.now() / 1000 - status.since) < 0
+                ? " behind"
+                : " ahead"
+            ),
             m("span", " for the month.")
           ])
         ])
