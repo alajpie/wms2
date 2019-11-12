@@ -9,13 +9,13 @@ import (
 	"github.com/palantir/stacktrace"
 )
 
-type eid_t int
+type eidT int
 
 type entry struct {
-	EID   eid_t `json:"eid"`
-	From  int   `json:"from"`
-	To    int   `json:"to"`
-	Valid bool  `json:"valid"`
+	EID   eidT `json:"eid"`
+	From  int  `json:"from"`
+	To    int  `json:"to"`
+	Valid bool `json:"valid"`
 }
 
 func disqualify(db *sql.DB) {
@@ -53,7 +53,7 @@ func disqualify(db *sql.DB) {
 	}
 }
 
-func clockIn(db *sql.DB, uid uid_t) (err error) {
+func clockIn(db *sql.DB, uid uidT) (err error) {
 	tx, err := db.Begin()
 	rollback := func() {
 		err = tx.Rollback()
@@ -86,7 +86,7 @@ func clockIn(db *sql.DB, uid uid_t) (err error) {
 	return stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
-func clockOut(db *sql.DB, uid uid_t) (err error) {
+func clockOut(db *sql.DB, uid uidT) (err error) {
 	tx, err := db.Begin()
 	rollback := func() {
 		err = tx.Rollback()
@@ -126,17 +126,17 @@ func clockOut(db *sql.DB, uid uid_t) (err error) {
 	return stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
-func editEntry(db *sql.DB, eid eid_t, from, to int) (err error) {
+func editEntry(db *sql.DB, eid eidT, from, to int) (err error) {
 	_, err = db.Exec("UPDATE entries SET from_unix_s = ?1, to_unix_s = ?2 WHERE eid = ?3", from, to, eid)
 	return stacktrace.Propagate(err, "failed to edit entry")
 }
 
-func deleteEntry(db *sql.DB, eid eid_t) (err error) {
+func deleteEntry(db *sql.DB, eid eidT) (err error) {
 	_, err = db.Exec("DELETE FROM entries WHERE eid = ?", eid)
 	return stacktrace.Propagate(err, "failed to delete entry")
 }
 
-func listEntries(db *sql.DB, uid uid_t) (days map[int64][]entry, err error) {
+func listEntries(db *sql.DB, uid uidT) (days map[int64][]entry, err error) {
 	rows, err := db.Query("SELECT eid, from_unix_s, to_unix_s, valid FROM entries WHERE uid = ?", uid)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to list entries")
@@ -162,7 +162,7 @@ func listEntries(db *sql.DB, uid uid_t) (days map[int64][]entry, err error) {
 	return days, nil
 }
 
-func getDeltaForDay(db *sql.DB, uid uid_t, date time.Time) (delta int, err error) {
+func getDeltaForDay(db *sql.DB, uid uidT, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
 
 	sod := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
@@ -199,7 +199,7 @@ func getDeltaForDay(db *sql.DB, uid uid_t, date time.Time) (delta int, err error
 	return delta, nil
 }
 
-func getDeltaForMonth(db *sql.DB, uid uid_t, date time.Time) (delta int, err error) {
+func getDeltaForMonth(db *sql.DB, uid uidT, date time.Time) (delta int, err error) {
 	// TODO: account for holidays
 
 	som := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())

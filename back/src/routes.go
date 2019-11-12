@@ -70,7 +70,7 @@ func (env *env) corsMiddleware(w http.ResponseWriter, r *http.Request, n func(ht
 }
 
 func (env *env) requireAdmin(w http.ResponseWriter, r *http.Request, n func(http.ResponseWriter, *http.Request)) {
-	uid, ok := r.Context().Value(uidKey).(uid_t)
+	uid, ok := r.Context().Value(uidKey).(uidT)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context, use requireSession first"))
 		do500(w)
@@ -99,7 +99,7 @@ func (env *env) requireSession(w http.ResponseWriter, r *http.Request, n func(ht
 		return
 	}
 
-	sid := sid_t(h[7:])
+	sid := sidT(h[7:])
 	uid, err := getUserBySession(env.db, sid)
 	if err != nil {
 		do401(w)
@@ -112,7 +112,7 @@ func (env *env) requireSession(w http.ResponseWriter, r *http.Request, n func(ht
 }
 
 func (env *env) status(w http.ResponseWriter, r *http.Request) {
-	uid, ok := r.Context().Value(uidKey).(uid_t)
+	uid, ok := r.Context().Value(uidKey).(uidT)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
@@ -163,7 +163,7 @@ func (env *env) status(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) clockIn(w http.ResponseWriter, r *http.Request) {
-	uid, ok := r.Context().Value(uidKey).(uid_t)
+	uid, ok := r.Context().Value(uidKey).(uidT)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
@@ -179,7 +179,7 @@ func (env *env) clockIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) clockOut(w http.ResponseWriter, r *http.Request) {
-	uid, ok := r.Context().Value(uidKey).(uid_t)
+	uid, ok := r.Context().Value(uidKey).(uidT)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
@@ -195,7 +195,7 @@ func (env *env) clockOut(w http.ResponseWriter, r *http.Request) {
 }
 
 func (env *env) entries(w http.ResponseWriter, r *http.Request) {
-	uid, ok := r.Context().Value(uidKey).(uid_t)
+	uid, ok := r.Context().Value(uidKey).(uidT)
 	if !ok {
 		fmt.Println(stacktrace.NewError("malformed context"))
 		do500(w)
@@ -216,7 +216,7 @@ func (env *env) entries(w http.ResponseWriter, r *http.Request) {
 func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 	strEID := powermux.PathParam(r, "eid")
 	intEID, err := strconv.Atoi(strEID)
-	eid := eid_t(intEID)
+	eid := eidT(intEID)
 	if err != nil {
 		do400(w)
 		return
@@ -256,7 +256,7 @@ func (env *env) entriesEdit(w http.ResponseWriter, r *http.Request) {
 func (env *env) entriesDelete(w http.ResponseWriter, r *http.Request) {
 	strEID := powermux.PathParam(r, "eid")
 	intEID, err := strconv.Atoi(strEID)
-	eid := eid_t(intEID)
+	eid := eidT(intEID)
 	if err != nil {
 		do400(w)
 		return
@@ -331,7 +331,7 @@ func (env *env) authorize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	js, _ := json.Marshal(struct {
-		Token sid_t `json:"token"`
+		Token sidT `json:"token"`
 	}{sid})
 	w.Write([]byte(js))
 }
