@@ -12,15 +12,15 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-type uid_t int
-type sid_t string
+type uidT int
+type sidT string
 
 type onlineUser struct {
-	UID   uid_t `json:"uid"`
-	Since int   `json:"since"`
+	UID   uidT `json:"uid"`
+	Since int  `json:"since"`
 }
 
-func createUser(db *sql.DB, email, password string, admin bool) (uid uid_t, err error) {
+func createUser(db *sql.DB, email, password string, admin bool) (uid uidT, err error) {
 	// TODO: add email confirmation
 
 	tx, err := db.Begin()
@@ -74,7 +74,7 @@ func createUser(db *sql.DB, email, password string, admin bool) (uid uid_t, err 
 	return uid, stacktrace.Propagate(tx.Commit(), "failed to commit transaction")
 }
 
-func checkPassword(db *sql.DB, uid uid_t, password string) (ok bool) {
+func checkPassword(db *sql.DB, uid uidT, password string) (ok bool) {
 	var savedHash, salt []byte
 	err := db.QueryRow("SELECT password_hash, password_salt FROM users WHERE uid = ?", uid).Scan(&savedHash, &salt)
 	if err != nil {
@@ -90,20 +90,20 @@ func checkPassword(db *sql.DB, uid uid_t, password string) (ok bool) {
 
 }
 
-func checkSession(db *sql.DB, sid sid_t) (ok bool) {
+func checkSession(db *sql.DB, sid sidT) (ok bool) {
 	err := db.QueryRow("SELECT 1 FROM sessions WHERE sid = ?1 AND expires_unix_s >= ?2", sid, time.Now().Unix()).Scan()
 	return err != sql.ErrNoRows
 }
 
-func getUserBySession(db *sql.DB, sid sid_t) (uid uid_t, err error) {
+func getUserBySession(db *sql.DB, sid sidT) (uid uidT, err error) {
 	db.QueryRow("SELECT uid FROM sessions WHERE sid = ?1 AND expires_unix_s >= ?2", sid, time.Now().Unix()).Scan(&uid)
 	return uid, err
 }
 
-func createSession(db *sql.DB, uid uid_t, expireAfter time.Duration) (sid sid_t, err error) {
+func createSession(db *sql.DB, uid uidT, expireAfter time.Duration) (sid sidT, err error) {
 	sidRaw := make([]byte, 18)
 	rand.Read(sidRaw)
-	sid = sid_t(base64.StdEncoding.EncodeToString(sidRaw))
+	sid = sidT(base64.StdEncoding.EncodeToString(sidRaw))
 	expires := time.Now().Add(expireAfter).Unix()
 	_, err = db.Exec(
 		`INSERT INTO sessions (sid, uid, expires_unix_s)
@@ -116,7 +116,7 @@ func cleanSessions(db *sql.DB) (err error) {
 	return err
 }
 
-func checkAdmin(db *sql.DB, uid uid_t) (admin bool, err error) {
+func checkAdmin(db *sql.DB, uid uidT) (admin bool, err error) {
 	err = db.QueryRow("SELECT admin FROM users WHERE uid = ?", uid).Scan(&admin)
 	return admin, err
 }
@@ -144,12 +144,12 @@ func listOnlineUsers(db *sql.DB) (onlineUsers []onlineUser, err error) {
 	return onlineUsers, nil
 }
 
-func emailToUID(db *sql.DB, email string) (uid uid_t, err error) {
+func emailToUID(db *sql.DB, email string) (uid uidT, err error) {
 	err = db.QueryRow("SELECT uid FROM users WHERE email = ?", email).Scan(&uid)
 	return uid, err
 }
 
-func uidToEmail(db *sql.DB, uid uid_t) (email string, err error) {
+func uidToEmail(db *sql.DB, uid uidT) (email string, err error) {
 	err = db.QueryRow("SELECT email FROM users WHERE uid = ?", uid).Scan(&email)
 	return email, err
 }
