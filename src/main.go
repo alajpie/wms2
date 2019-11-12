@@ -20,7 +20,7 @@ type env struct {
 func disqualifier(db *sql.DB) {
 	for {
 		now := time.Now()
-		cutoff := time.Date(now.Year(), now.Month(), now.Day(), 20, 0, 0, 0, now.Location())
+		cutoff := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
 		time.Sleep(time.Until(cutoff))
 		disqualify(db)
 	}
